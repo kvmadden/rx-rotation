@@ -155,19 +155,18 @@ function pushHistory() { setHistory(function (h) { return h.concat([{ step: step
 function nextStep() { pushHistory(); setShowMissing(false); setStep(step + 1); }
 function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); if (prev.curSched) setCurSched(JSON.parse(JSON.stringify(prev.curSched))); if (prev.curOverrides) setCurOverrides(JSON.parse(JSON.stringify(prev.curOverrides))); setStep(prev.step); return h.slice(0, -1); }); }
 return (
-<div style={{ minHeight: "100vh", background: Co.bg, color: Co.tx, textWrap: "pretty", ...font }}>
-<style>{"@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap'); @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} @keyframes shimmer{0%{background-position:200% 50%}100%{background-position:-200% 50%}}"}</style>
+<div className="app-root" style={{ background: Co.bg, color: Co.tx, ...font }}>
 {/* HEADER BAR */}
-<div style={{ background: Co.card, borderBottom: "1px solid " + Co.bdr, padding: "0 8px", display: "flex", alignItems: "center", height: 44, position: "sticky", top: 0, zIndex: 100 }}>
-<div style={{ display: "flex", alignItems: "baseline", gap: 3, flexShrink: 0, opacity: mode === null ? 0.5 : 1, transition: "opacity 0.2s" }}><span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.02em", color: Co.tx }}><span style={{ color: Co.ac }}>Rx</span>Rotation</span><span style={{ fontSize: 8, fontWeight: 600, color: Co.txMu, letterSpacing: 0.3, padding: "1px 3px", background: Co.bg, border: "1px solid " + Co.bdr, borderRadius: 2, position: "relative", top: -2 }}>LITE</span></div>
-<div style={{ width: 1, height: 12, background: Co.bdr, margin: "0 5px", flexShrink: 0 }} />
-<span style={{ fontSize: 9, color: Co.txMu, whiteSpace: "nowrap", flexShrink: 0, letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 600 }}>Madden Frameworks</span>
-{mode !== null ? <div style={{ display: "flex", alignItems: "center", marginLeft: 6, flexShrink: 0 }}><div style={{ width: 1, height: 12, background: Co.bdr, marginRight: 6 }} /><span style={{ fontSize: 9, fontWeight: 700, color: mode === "improve" ? Co.ac : Co.tl, letterSpacing: 0.3, textTransform: "uppercase", padding: "1px 4px", background: (mode === "improve" ? Co.ac : Co.tl) + "15", borderRadius: 2 }}>{mode === "improve" ? "Improve" : "New"}</span></div> : null}
-<div style={{ flex: 1, minWidth: 2 }} />
+<div className="app-header-bar" style={{ background: Co.card, borderBottom: "1px solid " + Co.bdr }}>
+<div className="app-header-brand" style={{ opacity: mode === null ? 0.5 : 1 }}><span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.02em", color: Co.tx }}><span style={{ color: Co.ac }}>Rx</span>Rotation</span><span style={{ fontSize: 8, fontWeight: 600, color: Co.txMu, letterSpacing: 0.3, padding: "1px 3px", background: Co.bg, border: "1px solid " + Co.bdr, borderRadius: 2, position: "relative", top: -2 }}>LITE</span></div>
+<div className="app-header-divider" style={{ background: Co.bdr, margin: "0 5px" }} />
+<span className="app-header-subtitle" style={{ color: Co.txMu }}>Madden Frameworks</span>
+{mode !== null ? <div className="app-header-mode"><div className="app-header-divider" style={{ background: Co.bdr, marginRight: 6 }} /><span className="mode-badge" style={{ color: mode === "improve" ? Co.ac : Co.tl, background: (mode === "improve" ? Co.ac : Co.tl) + "15" }}>{mode === "improve" ? "Improve" : "New"}</span></div> : null}
+<div className="app-header-spacer" />
 <div role="button" tabIndex={0} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} className="icon-btn" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDark(!dark); } }} onClick={function () { setDark(!dark); }} style={{ marginRight: 3 }}><span>{dark ? "\u2600\uFE0F" : "\uD83C\uDF19"}</span></div>
 <div role="button" tabIndex={0} aria-label="Help" className="icon-btn" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHelp(true); } }} onClick={function () { setShowHelp(true); }}><span>{"\u2139\uFE0F"}</span></div>
 </div>
-{mode !== null && step < resultsStep ? <div className="no-print" style={{ height: 3, background: Co.bdr }}><div style={{ height: "100%", width: progress + "%", background: Co.ac, transition: "width 0.3s" }} /></div> : null}
+{mode !== null && step < resultsStep ? <div className="no-print progress-bar" style={{ background: Co.bdr }}><div className="progress-bar-fill" style={{ width: progress + "%", background: Co.ac }} /></div> : null}
 {/* HELP PANEL */}
 {showHelp ? (
 <div role="dialog" aria-modal="true" aria-label="Help" className="help-overlay">

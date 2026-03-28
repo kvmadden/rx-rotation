@@ -1,3 +1,13 @@
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 50%; }
+  100% { background-position: -200% 50%; }
+}
+
 :root {
   --ac: #2D7A54;
   --ac-s: rgba(45,122,84,0.08);
@@ -65,6 +75,36 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.app-root {
+  min-height: 100vh;
+  text-wrap: pretty;
+}
+
+.app-header-subtitle {
+  font-size: 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.app-header-mode {
+  display: flex;
+  align-items: center;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+.mode-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
 /* App container */
 .app-container {
   max-width: 520px;
@@ -73,15 +113,42 @@ body {
 }
 
 /* Header */
-.app-header {
+.app-header-bar {
+  padding: 0 8px;
   display: flex;
   align-items: center;
-  padding: 16px 0 12px;
-  gap: 8px;
+  height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.app-header-title {
+.app-header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.app-header-spacer {
   flex: 1;
+  min-width: 2px;
+}
+
+.app-header-divider {
+  width: 1px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.progress-bar {
+  height: 3px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  transition: width 0.3s;
 }
 
 .icon-btn {
