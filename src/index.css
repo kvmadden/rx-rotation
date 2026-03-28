@@ -256,21 +256,6 @@ body {
   overflow-y: auto;
 }
 
-/* Step indicator */
-.step-indicator {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.step-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
 .no-print {
   /* marker class for print hiding */
 }
@@ -280,8 +265,9 @@ body {
   .footer-nav,
   .help-overlay,
   .icon-btn,
-  .step-indicator,
-  .no-print {
+  .no-print,
+  .app-header-bar,
+  .progress-bar {
     display: none !important;
   }
 
