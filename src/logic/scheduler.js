@@ -23,9 +23,7 @@ DAYS.forEach(function (d) { var dh = store.hours[d]; dayHrsMap[d] = (dh && dh.is
 var openDays = DAYS.filter(function (d) { return dayHrsMap[d] > 0; });
 var ranking = store.dayRanking || openDays;
 var pm = dayStaff.find(function (p) { return p.role === "pm"; });
-var avgDayHrs = 0, openDayCount = 0;
-openDays.forEach(function (d) { avgDayHrs += dayHrsMap[d]; openDayCount++; });
-avgDayHrs = openDayCount > 0 ? avgDayHrs / openDayCount : 12;
+var openDayCount = openDays.length;
 var weeks = [];
 for (var w = 0; w < R; w++) {
 var wk = {};
