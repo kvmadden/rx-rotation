@@ -151,6 +151,21 @@ var resultsStep = 5;
 var preResultsSteps = 5;
 var curVisible = step + 1;
 var progress = mode === null ? 0 : step >= resultsStep ? 100 : Math.round((curVisible / (preResultsSteps + 1)) * 100);
+function storeTopRow() {
+return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+<Card style={{ padding: 12, marginBottom: 0 }}>
+<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
+<Inp value={store.storeLabel} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, storeLabel: e.target.value.slice(0, 10) }; }); }} placeholder="Optional" maxLength={10} style={{ fontSize: 15, textAlign: "center", width: "100%", height: 42, color: store.storeLabel ? Co.tx : Co.txD }} />
+</Card>
+<Card style={{ padding: 12, marginBottom: 0 }}>
+<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
+<div style={{ display: "flex", gap: 4 }}>
+<div onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
+<div onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
+</div>
+</Card>
+</div>;
+}
 function pushHistory() { setHistory(function (h) { return h.concat([{ step: step, store: JSON.parse(JSON.stringify(store)), pharms: JSON.parse(JSON.stringify(pharms)), curSched: curSched ? JSON.parse(JSON.stringify(curSched)) : null, curOverrides: JSON.parse(JSON.stringify(curOverrides)) }]); }); }
 function nextStep() { pushHistory(); setShowMissing(false); setStep(step + 1); }
 function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); if (prev.curSched) setCurSched(JSON.parse(JSON.stringify(prev.curSched))); if (prev.curOverrides) setCurOverrides(JSON.parse(JSON.stringify(prev.curOverrides))); setStep(prev.step); return h.slice(0, -1); }); }
@@ -332,20 +347,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <div>
 <div className="section-heading">Store basics</div>
 <div className="section-subtext" style={{ color: Co.txMu }}>Set your RPh demand hours and rotation length.</div>
-{/* TOP ROW: 2x1 grid */}
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
-<Inp value={store.storeLabel} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, storeLabel: e.target.value.slice(0, 10) }; }); }} placeholder="Optional" maxLength={10} style={{ fontSize: 15, textAlign: "center", width: "100%", height: 42, color: store.storeLabel ? Co.tx : Co.txD }} />
-</Card>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
-<div style={{ display: "flex", gap: 4 }}>
-<div onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
-<div onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
-</div>
-</Card>
-</div>
+{storeTopRow()}
 {/* RPH DEMAND HOURS */}
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center" }}>
@@ -379,20 +381,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <div>
 <div className="section-heading">Store basics</div>
 <div className="section-subtext" style={{ color: Co.txMu }}>Confirm what{"'"}s staying the same and what{"'"}s changing.</div>
-{/* TOP ROW: 2x1 grid */}
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
-<Inp value={store.storeLabel} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, storeLabel: e.target.value.slice(0, 10) }; }); }} placeholder="Optional" maxLength={10} style={{ fontSize: 15, textAlign: "center", width: "100%", height: 42, color: store.storeLabel ? Co.tx : Co.txD }} />
-</Card>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
-<div style={{ display: "flex", gap: 4 }}>
-<div onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
-<div onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
-</div>
-</Card>
-</div>
+{storeTopRow()}
 {/* RPH DEMAND HOURS */}
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
@@ -594,8 +583,9 @@ var staffCt2 = pharms.filter(function (p) { return p.role === "staff"; }).length
 var rot2 = store.rotationWeeks || 2;
 var expectedStaff2 = Math.max(1, rot2 - 1);
 var teamComplete = pmCt2 >= 1 && staffCt2 >= expectedStaff2;
-if (pharms.length === 0) return <div>{teamWarning && teamWarning.includes("to continue") ? <div style={{ padding: "10px 14px", background: Co.rdS, borderRadius: 10, marginBottom: 8, border: "1px solid " + Co.rd + "40", transition: "transform 0.15s, box-shadow 0.15s", transform: flash.team ? "scale(1.03)" : "none", boxShadow: flash.team ? "0 0 0 2px " + Co.rd + "60" : "none" }}><div style={{ fontSize: 12, color: Co.rd, fontWeight: 600 }}>{teamWarning}</div></div> : null}<Btn variant="primary" onClick={addPharm} style={{ width: "100%", marginTop: 6 }}>+ Add Pharmacy Manager</Btn></div>;
-if (!teamComplete) return <div>{teamWarning && teamWarning.includes("to continue") ? <div style={{ padding: "10px 14px", background: Co.rdS, borderRadius: 10, marginBottom: 8, border: "1px solid " + Co.rd + "40", transition: "transform 0.15s, box-shadow 0.15s", transform: flash.team ? "scale(1.03)" : "none", boxShadow: flash.team ? "0 0 0 2px " + Co.rd + "60" : "none" }}><div style={{ fontSize: 12, color: Co.rd, fontWeight: 600 }}>{teamWarning}</div></div> : null}<Btn variant="primary" onClick={addPharm} style={{ width: "100%", marginTop: 6 }}>+ Add Next Pharmacist</Btn></div>;
+var teamAlert = teamWarning && teamWarning.includes("to continue") ? <div style={{ padding: "10px 14px", background: Co.rdS, borderRadius: 10, marginBottom: 8, border: "1px solid " + Co.rd + "40", transition: "transform 0.15s, box-shadow 0.15s", transform: flash.team ? "scale(1.03)" : "none", boxShadow: flash.team ? "0 0 0 2px " + Co.rd + "60" : "none" }}><div style={{ fontSize: 12, color: Co.rd, fontWeight: 600 }}>{teamWarning}</div></div> : null;
+if (pharms.length === 0) return <div>{teamAlert}<Btn variant="primary" onClick={addPharm} style={{ width: "100%", marginTop: 6 }}>+ Add Pharmacy Manager</Btn></div>;
+if (!teamComplete) return <div>{teamAlert}<Btn variant="primary" onClick={addPharm} style={{ width: "100%", marginTop: 6 }}>+ Add Next Pharmacist</Btn></div>;
 return <Btn onClick={addPharm} style={{ width: "100%", marginTop: 6 }}>+ Add Another (optional)</Btn>;
 })()}
 </div>
