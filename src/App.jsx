@@ -148,9 +148,9 @@ var resultsStep = 5;
 var preResultsSteps = 5;
 var curVisible = step + 1;
 var progress = mode === null ? 0 : step >= resultsStep ? 100 : Math.round((curVisible / (preResultsSteps + 1)) * 100);
-function pushHistory() { setHistory(function (h) { return h.concat([{ step: step, store: JSON.parse(JSON.stringify(store)), pharms: JSON.parse(JSON.stringify(pharms)) }]); }); }
+function pushHistory() { setHistory(function (h) { return h.concat([{ step: step, store: JSON.parse(JSON.stringify(store)), pharms: JSON.parse(JSON.stringify(pharms)), curSched: curSched ? JSON.parse(JSON.stringify(curSched)) : null, curOverrides: JSON.parse(JSON.stringify(curOverrides)) }]); }); }
 function nextStep() { pushHistory(); setShowMissing(false); setStep(step + 1); }
-function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); setStep(prev.step); return h.slice(0, -1); }); }
+function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); if (prev.curSched) setCurSched(JSON.parse(JSON.stringify(prev.curSched))); if (prev.curOverrides) setCurOverrides(JSON.parse(JSON.stringify(prev.curOverrides))); setStep(prev.step); return h.slice(0, -1); }); }
 return (
 <div style={{ minHeight: "100vh", background: Co.bg, color: Co.tx, textWrap: "pretty", ...font }}>
 <style>{"@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap'); @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} @keyframes shimmer{0%{background-position:200% 50%}100%{background-position:-200% 50%}}"}</style>
@@ -164,7 +164,7 @@ return (
 <div role="button" tabIndex={0} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} className="icon-btn" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDark(!dark); } }} onClick={function () { setDark(!dark); }} style={{ marginRight: 3 }}><span>{dark ? "\u2600\uFE0F" : "\uD83C\uDF19"}</span></div>
 <div role="button" tabIndex={0} aria-label="Help" className="icon-btn" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHelp(true); } }} onClick={function () { setShowHelp(true); }}><span>{"\u2139\uFE0F"}</span></div>
 </div>
-{mode !== null && step < resultsStep ? <div style={{ height: 3, background: Co.bdr }}><div style={{ height: "100%", width: progress + "%", background: Co.ac, transition: "width 0.3s" }} /></div> : null}
+{mode !== null && step < resultsStep ? <div className="no-print" style={{ height: 3, background: Co.bdr }}><div style={{ height: "100%", width: progress + "%", background: Co.ac, transition: "width 0.3s" }} /></div> : null}
 {/* HELP PANEL */}
 {showHelp ? (
 <div role="dialog" aria-modal="true" aria-label="Help" className="help-overlay">
@@ -559,7 +559,7 @@ return <div key={p.id} style={{ marginBottom: 8 }}>
 <div style={{ background: Co.card, borderRadius: 10, boxShadow: shadow.md, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, borderLeft: "3px solid " + (p.role === "ovnt" ? Co.pu : p.role === "dsp" ? Co.tl : p.color) }}>
 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 700 }}>{p.name} <span style={{ fontSize: 11, color: Co.txMu, fontWeight: 500 }}>{p.role === "pm" ? "PM" : p.role === "ovnt" ? "OVNT" : p.role === "dsp" ? "DSP" : "Staff"} {"\u00B7"} {p.targetHours}h/wk</span></div>{tags.length > 0 ? <div style={{ fontSize: 11, color: Co.txMu, marginTop: 2 }}>{tags.join(" \u00B7 ")}</div> : <div style={{ fontSize: 11, color: Co.txD, marginTop: 2 }}>Fully flexible</div>}</div>
 <Btn style={{ padding: "3px 8px", fontSize: 11 }} onClick={function () { setEditP({ ...p, prefs: { ...defPrefs(), ...p.prefs } }); }}>Edit</Btn>
-<span onClick={function () { setRemoving(removing === p.id ? null : p.id); }} style={{ fontSize: 12, color: Co.txD, cursor: "pointer", padding: "2px 4px" }}>{"\u2715"}</span>
+<span onClick={function () { setRemoving(removing === p.id ? null : p.id); }} style={{ fontSize: 12, color: Co.txD, cursor: "pointer", padding: "8px 10px", margin: "-8px -10px" }}>{"\u2715"}</span>
 </div>
 {removing === p.id ? <div style={{ background: Co.bg, borderRadius: "0 0 10px 10px", padding: "10px 14px", marginTop: -4, display: "flex", gap: 6, alignItems: "center" }}><span style={{ fontSize: 11, color: Co.txMu, flex: 1 }}>Remove {firstName(p)}?</span><Btn style={{ padding: "4px 10px", fontSize: 11 }} onClick={function () { setPharms(function (pr) { return pr.filter(function (x) { return x.id !== p.id; }); }); setRemoving(null); setTeamWarning(null); }}>Drop</Btn><Btn variant="primary" style={{ padding: "4px 10px", fontSize: 11 }} onClick={function () { var isDsp = p.role === "dsp"; var newP = { id: Date.now() + Math.random(), name: "", role: p.role, color: p.color, targetHours: isDsp ? 15 : 40, minHours: isDsp ? 5 : 32, maxHours: isDsp ? 25 : 48, payPeriodHours: isDsp ? 30 : 80, earliestStart: "", latestEnd: "", maxShiftLength: isDsp ? 8 : 13, minShiftLength: isDsp ? 4 : 6, earlyStartMinutes: null, prefs: defPrefs() }; setPharms(function (pr) { return pr.map(function (x) { return x.id === p.id ? newP : x; }); }); setRemoving(null); setEditP(newP); }}>Replace</Btn></div> : null}
 </div>;
