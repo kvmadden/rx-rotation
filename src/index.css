@@ -81,10 +81,6 @@ body {
   gap: 8px;
 }
 
-.app-header-title {
-  flex: 1;
-}
-
 .icon-btn {
   width: 28px;
   height: 28px;
@@ -153,19 +149,95 @@ body {
   overflow-y: auto;
 }
 
-/* Step indicator */
-.step-indicator {
+/* Header bar */
+.header-bar {
+  padding: 0 8px;
   display: flex;
-  gap: 4px;
-  justify-content: center;
-  margin-bottom: 16px;
+  align-items: center;
+  height: 44;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.step-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
+.header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.header-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--bdr);
+  margin: 0 5px;
+  flex-shrink: 0;
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 3px;
+  background: var(--bdr);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--ac);
+  transition: width 0.3s;
+}
+
+/* Section headings */
+.section-heading {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+/* Landing page cards */
+.landing-card-improve {
+  border-radius: 16px;
+  padding: 28px 22px 30px;
+  cursor: pointer;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-card-scratch {
+  padding: 22px 22px;
+  cursor: pointer;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Segmented control */
+.seg-control {
+  display: flex;
+  gap: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.seg-control-option {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* Focus styles */
+[role="button"]:focus-visible,
+.icon-btn:focus-visible,
+.landing-card-improve:focus-visible,
+.landing-card-scratch:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
 }
 
 /* Print styles */
@@ -173,7 +245,8 @@ body {
   .footer-nav,
   .help-overlay,
   .icon-btn,
-  .step-indicator {
+  .header-bar,
+  .progress-bar {
     display: none !important;
   }
 

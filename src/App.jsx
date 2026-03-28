@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DAYS, Co, shadow, font, mono, PC, setTheme } from "./theme.js";
-import { t2m, m2t, snap30, fmtH, tL, hSpan, opHrs, scriptVolume, firstName } from "./utils.js";
+import { t2m, m2t, snap30, fmtH, tL, opHrs, firstName } from "./utils.js";
 import { defPrefs, defHours, generateSchedule, validateCandidate, scoreTemplate, genSummaryText, genNarrative } from "./logic/scheduler.js";
 import { Btn, Inp, Sel, TSel, Tog, NW, Card, Collapsible } from "./components/ui.jsx";
 var INITIAL_STORE = { storeLabel: "", allocatedHoursPerWeek: 81, is24hr: false, rotationWeeks: 2, hours: defHours(), dayRanking: ["Mon", "Tue", "Fri", "Wed", "Thu", "Sat", "Sun"], dayTies: [3], peak: { weekday: [{ start: "12:00", end: "17:00" }], saturday: [{ start: "11:00", end: "16:00" }], sunday: [{ start: "12:00", end: "15:00" }] }, dspDays: [], pmAnchorBusiest: true };
@@ -151,27 +151,48 @@ var progress = mode === null ? 0 : step >= resultsStep ? 100 : Math.round((curVi
 function pushHistory() { setHistory(function (h) { return h.concat([{ step: step, store: JSON.parse(JSON.stringify(store)), pharms: JSON.parse(JSON.stringify(pharms)) }]); }); }
 function nextStep() { pushHistory(); setShowMissing(false); setStep(step + 1); }
 function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); setStep(prev.step); return h.slice(0, -1); }); }
+function storeTopRow() { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+<Card style={{ padding: 12, marginBottom: 0 }}>
+<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
+<Inp value={store.storeLabel} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, storeLabel: e.target.value.slice(0, 10) }; }); }} placeholder="Optional" maxLength={10} style={{ fontSize: 15, textAlign: "center", width: "100%", height: 42, color: store.storeLabel ? Co.tx : Co.txD }} />
+</Card>
+<Card style={{ padding: 12, marginBottom: 0 }}>
+<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
+<div style={{ display: "flex", gap: 4 }}>
+<div role="button" tabIndex={0} aria-pressed={store.is24hr} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); } }} onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
+<div role="button" tabIndex={0} aria-pressed={!store.is24hr} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStore(function (s) { return { ...s, is24hr: false }; }); } }} onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
+</div>
+</Card>
+</div>; }
+function overnightCard() { return <Card style={{ borderLeft: "3px solid " + Co.pu }}>
+<div style={{ fontSize: 14, fontWeight: 700, color: Co.pu, marginBottom: 4 }}>Overnight RPh Shift</div>
+<div style={{ fontSize: 11, color: Co.txMu, marginBottom: 10 }}>7 nights on, 7 nights off.</div>
+<div style={{ fontSize: 11, fontWeight: 600, color: Co.txMu, marginBottom: 4 }}>Weekdays</div>
+<div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}><span style={{ fontSize: 12 }}>In</span><TSel value={(store.ovnt || {}).wkdayIn || "21:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkdayIn: v } }; }); }} /><div style={{ width: 1, height: 20, background: Co.bdrL, marginLeft: 2 }} /><span style={{ fontSize: 12 }}>Out</span><TSel value={(store.ovnt || {}).wkdayOut || "08:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkdayOut: v } }; }); }} /></div>
+<div style={{ fontSize: 11, fontWeight: 600, color: Co.txMu, marginBottom: 4 }}>Weekends</div>
+<div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 12 }}>In</span><TSel value={(store.ovnt || {}).wkndIn || "21:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkndIn: v } }; }); }} /><div style={{ width: 1, height: 20, background: Co.bdrL, marginLeft: 2 }} /><span style={{ fontSize: 12 }}>Out</span><TSel value={(store.ovnt || {}).wkndOut || "09:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkndOut: v } }; }); }} /></div>
+</Card>; }
 return (
 <div style={{ minHeight: "100vh", background: Co.bg, color: Co.tx, textWrap: "pretty", ...font }}>
 <style>{"@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap'); @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}} @keyframes shimmer{0%{background-position:200% 50%}100%{background-position:-200% 50%}}"}</style>
 {/* HEADER BAR */}
-<div style={{ background: Co.card, borderBottom: "1px solid " + Co.bdr, padding: "0 8px", display: "flex", alignItems: "center", height: 44, position: "sticky", top: 0, zIndex: 100 }}>
-<div style={{ display: "flex", alignItems: "baseline", gap: 3, flexShrink: 0, opacity: mode === null ? 0.5 : 1, transition: "opacity 0.2s" }}><span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.02em", color: Co.tx }}><span style={{ color: Co.ac }}>Rx</span>Rotation</span><span style={{ fontSize: 8, fontWeight: 600, color: Co.txMu, letterSpacing: 0.3, padding: "1px 3px", background: Co.bg, border: "1px solid " + Co.bdr, borderRadius: 2, position: "relative", top: -2 }}>LITE</span></div>
-<div style={{ width: 1, height: 12, background: Co.bdr, margin: "0 5px", flexShrink: 0 }} />
+<div className="header-bar" style={{ background: Co.card, borderBottom: "1px solid " + Co.bdr }}>
+<div className="header-brand" style={{ opacity: mode === null ? 0.5 : 1 }}><span style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.02em", color: Co.tx }}><span style={{ color: Co.ac }}>Rx</span>Rotation</span><span style={{ fontSize: 8, fontWeight: 600, color: Co.txMu, letterSpacing: 0.3, padding: "1px 3px", background: Co.bg, border: "1px solid " + Co.bdr, borderRadius: 2, position: "relative", top: -2 }}>LITE</span></div>
+<div className="header-divider" />
 <span style={{ fontSize: 9, color: Co.txMu, whiteSpace: "nowrap", flexShrink: 0, letterSpacing: 0.3, textTransform: "uppercase", fontWeight: 600 }}>Madden Frameworks</span>
-{mode !== null ? <div style={{ display: "flex", alignItems: "center", marginLeft: 6, flexShrink: 0 }}><div style={{ width: 1, height: 12, background: Co.bdr, marginRight: 6 }} /><span style={{ fontSize: 9, fontWeight: 700, color: mode === "improve" ? Co.ac : Co.tl, letterSpacing: 0.3, textTransform: "uppercase", padding: "1px 4px", background: (mode === "improve" ? Co.ac : Co.tl) + "15", borderRadius: 2 }}>{mode === "improve" ? "Improve" : "New"}</span></div> : null}
+{mode !== null ? <div style={{ display: "flex", alignItems: "center", marginLeft: 6, flexShrink: 0 }}><div className="header-divider" style={{ marginRight: 6 }} /><span style={{ fontSize: 9, fontWeight: 700, color: mode === "improve" ? Co.ac : Co.tl, letterSpacing: 0.3, textTransform: "uppercase", padding: "1px 4px", background: (mode === "improve" ? Co.ac : Co.tl) + "15", borderRadius: 2 }}>{mode === "improve" ? "Improve" : "New"}</span></div> : null}
 <div style={{ flex: 1, minWidth: 2 }} />
 <div role="button" tabIndex={0} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} className="icon-btn" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDark(!dark); } }} onClick={function () { setDark(!dark); }} style={{ marginRight: 3 }}><span>{dark ? "\u2600\uFE0F" : "\uD83C\uDF19"}</span></div>
 <div role="button" tabIndex={0} aria-label="Help" className="icon-btn" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHelp(true); } }} onClick={function () { setShowHelp(true); }}><span>{"\u2139\uFE0F"}</span></div>
 </div>
-{mode !== null && step < resultsStep ? <div style={{ height: 3, background: Co.bdr }}><div style={{ height: "100%", width: progress + "%", background: Co.ac, transition: "width 0.3s" }} /></div> : null}
+{mode !== null && step < resultsStep ? <div className="progress-bar"><div className="progress-bar-fill" style={{ width: progress + "%" }} /></div> : null}
 {/* HELP PANEL */}
 {showHelp ? (
 <div role="dialog" aria-modal="true" aria-label="Help" className="help-overlay">
 <div onClick={function () { setShowHelp(false); }} className="help-backdrop" />
 <div className="help-panel">
 <div style={{ background: "linear-gradient(135deg, #3D9A6D 0%, #2D7A54 50%, #236645 100%)", padding: "28px 20px 22px", color: "#fff" }}>
-<div style={{ display: "flex", alignItems: "flex-start" }}><div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: 0.85, marginBottom: 6 }}>Madden Frameworks</div><div style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}><span style={{ color: "#6BC4A0" }}>Rx</span>Rotation</span><span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, padding: "2px 7px", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 4, verticalAlign: "middle", position: "relative", top: -2 }}>LITE</span></div></div><div onClick={function () { setShowHelp(false); }} style={{ fontSize: 18, cursor: "pointer", opacity: 0.7, padding: "2px 6px", marginTop: -4 }}>{"\u2715"}</div></div>
+<div style={{ display: "flex", alignItems: "flex-start" }}><div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: 0.85, marginBottom: 6 }}>Madden Frameworks</div><div style={{ display: "flex", alignItems: "baseline", gap: 8 }}><span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}><span style={{ color: "#6BC4A0" }}>Rx</span>Rotation</span><span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 0.5, padding: "2px 7px", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 4, verticalAlign: "middle", position: "relative", top: -2 }}>LITE</span></div></div><div role="button" tabIndex={0} aria-label="Close help" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowHelp(false); } }} onClick={function () { setShowHelp(false); }} style={{ fontSize: 18, cursor: "pointer", opacity: 0.7, padding: "2px 6px", marginTop: -4 }}>{"\u2715"}</div></div>
 <div style={{ fontSize: 13, opacity: 0.9, marginTop: 8, lineHeight: 1.5 }}>Build optimized pharmacist schedules. The system evaluates every template against six weighted business criteria and surfaces the strongest option.</div>
 </div>
 <div style={{ padding: "16px 20px 32px" }}>
@@ -280,7 +301,6 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 ) : null}
 <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px 80px" }}>
 {/* LANDING PAGE */}
-{/* HOME SCREEN — v2 */}
 {mode === null && (
 <div style={{ paddingTop: 12 }}>
 <div style={{ marginBottom: 20, paddingLeft: 4, position: "relative" }}>
@@ -288,11 +308,11 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.03em", color: Co.tx, lineHeight: 1.1 }}><span style={{ color: Co.ac }}>Rx</span>Rotation <span style={{ fontSize: 13, fontWeight: 600, color: Co.txMu, letterSpacing: 0.5, padding: "2px 8px", background: Co.bg, border: "1px solid " + Co.bdr, borderRadius: 4, verticalAlign: "middle", position: "relative", top: -2 }}>LITE</span></div>
 <div style={{ fontSize: 16, color: Co.txMu, marginTop: 8, lineHeight: 1.5 }}>Build stronger pharmacist schedules.<br />See the tradeoffs. Pick what fits.</div>
 </div>
-<div onClick={function () { setMode("improve"); }} style={{ background: "linear-gradient(135deg, #3D9A6D 0%, #2D7A54 60%, #236645 100%)", borderRadius: 16, boxShadow: "0 8px 32px rgba(61,154,109,0.25)", padding: "28px 22px 30px", cursor: "pointer", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
+<div role="button" tabIndex={0} aria-label="Improve current schedule" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMode("improve"); } }} onClick={function () { setMode("improve"); }} className="landing-card-improve" style={{ background: "linear-gradient(135deg, #3D9A6D 0%, #2D7A54 60%, #236645 100%)", boxShadow: "0 8px 32px rgba(61,154,109,0.25)", marginBottom: 14 }}>
 <div style={{ position: "absolute", top: -20, right: -20, width: 120, height: 120, borderRadius: 60, background: "rgba(255,255,255,0.06)" }} />
 <div style={{ position: "relative" }}><div style={{ fontSize: 12, fontWeight: 600, opacity: 0.75, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>Most common path</div><div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Improve current schedule</div><div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.7, marginBottom: 20 }}>Enter what you{"'"}re running now.<br />See how it grades, where it{"'"}s weak,<br />and what{"'"}s stronger.</div><div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 700, background: "rgba(255,255,255,0.2)", padding: "10px 20px", borderRadius: 10 }}>Get started {"\u2192"}</div></div>
 </div>
-<div onClick={function () { setMode("scratch"); }} style={{ padding: "22px 22px", cursor: "pointer", borderRadius: 16, background: Co.card, boxShadow: shadow.md, border: "1px solid " + Co.bdr, position: "relative", overflow: "hidden" }}>
+<div role="button" tabIndex={0} aria-label="Build a new template" onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMode("scratch"); } }} onClick={function () { setMode("scratch"); }} className="landing-card-scratch" style={{ background: Co.card, boxShadow: shadow.md, border: "1px solid " + Co.bdr }}>
 <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: Co.ac, borderRadius: "16px 0 0 16px" }} />
 <div style={{ display: "flex", alignItems: "center", gap: 14 }}><div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: Co.tx, marginBottom: 6 }}>Build a new template</div><div style={{ fontSize: 13, color: Co.txMu, lineHeight: 1.5 }}>New store or new team. Start from zero.</div></div><div style={{ fontSize: 20, color: Co.ac, fontWeight: 700, flexShrink: 0 }}>{"\u2192"}</div></div>
 </div>
@@ -306,22 +326,9 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 {/* STEP 0: Store basics */}
 {step === 0 && mode === "scratch" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Store basics</div>
+<div className="section-heading">Store basics</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 16 }}>Set your RPh demand hours and rotation length.</div>
-{/* TOP ROW: 2x1 grid */}
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
-<Inp value={store.storeLabel} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, storeLabel: e.target.value.slice(0, 10) }; }); }} placeholder="Optional" maxLength={10} style={{ fontSize: 15, textAlign: "center", width: "100%", height: 42, color: store.storeLabel ? Co.tx : Co.txD }} />
-</Card>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
-<div style={{ display: "flex", gap: 4 }}>
-<div onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
-<div onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
-</div>
-</Card>
-</div>
+{storeTopRow()}
 {/* RPH DEMAND HOURS */}
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center" }}>
@@ -339,36 +346,14 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <Sel value={store.rotationWeeks} onChange={function (v) { setStore(function (s) { return { ...s, rotationWeeks: +v }; }); }} style={{ width: 128, padding: "12px 28px 14px 10px", ...mono, fontSize: 15, fontWeight: 700 }}><option value={2}>2 weeks</option><option value={3}>3 weeks</option><option value={4}>4 weeks</option><option value={5}>5 weeks</option></Sel>
 </div>
 </Card>
-{store.is24hr ? (
-<Card style={{ borderLeft: "3px solid " + Co.pu }}>
-<div style={{ fontSize: 14, fontWeight: 700, color: Co.pu, marginBottom: 4 }}>Overnight RPh Shift</div>
-<div style={{ fontSize: 11, color: Co.txMu, marginBottom: 10 }}>7 nights on, 7 nights off.</div>
-<div style={{ fontSize: 11, fontWeight: 600, color: Co.txMu, marginBottom: 4 }}>Weekdays</div>
-<div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}><span style={{ fontSize: 12 }}>In</span><TSel value={(store.ovnt || {}).wkdayIn || "21:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkdayIn: v } }; }); }} /><div style={{ width: 1, height: 20, background: Co.bdrL, marginLeft: 2 }} /><span style={{ fontSize: 12 }}>Out</span><TSel value={(store.ovnt || {}).wkdayOut || "08:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkdayOut: v } }; }); }} /></div>
-<div style={{ fontSize: 11, fontWeight: 600, color: Co.txMu, marginBottom: 4 }}>Weekends</div>
-<div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 12 }}>In</span><TSel value={(store.ovnt || {}).wkndIn || "21:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkndIn: v } }; }); }} /><div style={{ width: 1, height: 20, background: Co.bdrL, marginLeft: 2 }} /><span style={{ fontSize: 12 }}>Out</span><TSel value={(store.ovnt || {}).wkndOut || "09:00"} onChange={function (v) { setStore(function (s) { return { ...s, ovnt: { ...(s.ovnt || {}), wkndOut: v } }; }); }} /></div>
-</Card>
-) : null}
+{store.is24hr ? overnightCard() : null}
 </div>
 )}
 {step === 0 && mode === "improve" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Store basics</div>
+<div className="section-heading">Store basics</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 16 }}>Confirm what{"'"}s staying the same and what{"'"}s changing.</div>
-{/* TOP ROW: 2x1 grid */}
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
-<Inp value={store.storeLabel} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, storeLabel: e.target.value.slice(0, 10) }; }); }} placeholder="Optional" maxLength={10} style={{ fontSize: 15, textAlign: "center", width: "100%", height: 42, color: store.storeLabel ? Co.tx : Co.txD }} />
-</Card>
-<Card style={{ padding: 12, marginBottom: 0 }}>
-<div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
-<div style={{ display: "flex", gap: 4 }}>
-<div onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
-<div onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
-</div>
-</Card>
-</div>
+{storeTopRow()}
 {/* RPH DEMAND HOURS */}
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
@@ -377,7 +362,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <Inp type="number" step="0.5" value={store._hoursChanged ? (store._originalBudget === "" ? "" : store._originalBudget) : (store.allocatedHoursPerWeek === "" ? "" : store.allocatedHoursPerWeek)} onChange={function (e) { setShowMissing(false); var v = e.target.value === "" ? "" : Math.max(0, +e.target.value); setStore(function (s) { if (s._hoursChanged) { return { ...s, _originalBudget: v }; } return { ...s, allocatedHoursPerWeek: v }; }); }} onBlur={function () { setStore(function (s) { if (s._hoursChanged) { return { ...s, _originalBudget: s._originalBudget === "" ? 81 : s._originalBudget }; } return { ...s, allocatedHoursPerWeek: s.allocatedHoursPerWeek === "" ? 81 : s.allocatedHoursPerWeek }; }); }} style={{ ...mono, fontSize: 17, fontWeight: 700, textAlign: "center", width: 74, height: 42, border: showMissing && store.allocatedHoursPerWeek === "" ? "1.5px solid " + Co.rd : "1px solid " + Co.bdr, padding: "2px 6px" }} />
 <span style={{ fontSize: 13, color: Co.txMu, marginLeft: 8, flexShrink: 0 }}>hours/week</span>
 </div>
-<div style={{ display: "flex", gap: 0, borderRadius: 6, overflow: "hidden", border: "1px solid " + Co.bdr }}>
+<div className="seg-control" style={{ border: "1px solid " + Co.bdr }}>
 <div onClick={function () { setStore(function (s) { return { ...s, _hoursChanged: false, allocatedHoursPerWeek: s._originalBudget || s.allocatedHoursPerWeek }; }); }} style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center", background: !store._hoursChanged ? Co.ac : "transparent", color: !store._hoursChanged ? "#fff" : Co.txMu }}>Same for new template</div>
 <div onClick={function () { setStore(function (s) { return { ...s, _hoursChanged: true, _originalBudget: s._originalBudget || s.allocatedHoursPerWeek }; }); }} style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center", background: store._hoursChanged ? Co.am : "transparent", color: store._hoursChanged ? "#fff" : Co.txMu, borderLeft: "1px solid " + Co.bdr }}>Changed</div>
 </div>
@@ -396,7 +381,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <div style={{ flex: 1 }} />
 <Sel value={store._rotChanged ? (store._originalRot || store.rotationWeeks) : store.rotationWeeks} onChange={function (v) { setStore(function (s) { if (s._rotChanged) { return { ...s, _originalRot: +v }; } return { ...s, rotationWeeks: +v }; }); }} style={{ width: 128, padding: "12px 28px 14px 10px", ...mono, fontSize: 15, fontWeight: 700 }}><option value={2}>2 weeks</option><option value={3}>3 weeks</option><option value={4}>4 weeks</option><option value={5}>5 weeks</option></Sel>
 </div>
-<div style={{ display: "flex", gap: 0, borderRadius: 6, overflow: "hidden", border: "1px solid " + Co.bdr }}>
+<div className="seg-control" style={{ border: "1px solid " + Co.bdr }}>
 <div onClick={function () { setStore(function (s) { return { ...s, _rotChanged: false, rotationWeeks: s._originalRot || s.rotationWeeks }; }); }} style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center", background: !store._rotChanged ? Co.ac : "transparent", color: !store._rotChanged ? "#fff" : Co.txMu }}>Same for new template</div>
 <div onClick={function () { setStore(function (s) { return { ...s, _rotChanged: true, _originalRot: s._originalRot || s.rotationWeeks }; }); }} style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center", background: store._rotChanged ? Co.am : "transparent", color: store._rotChanged ? "#fff" : Co.txMu, borderLeft: "1px solid " + Co.bdr }}>Changed</div>
 </div>
@@ -428,7 +413,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 {/* STEP 1: Operating Hours */}
 {step === 1 && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 2 }}>{store.is24hr ? "Daytime pharmacy hours" : mode === "improve" ? "Hours of operation" : "Operating hours"}</div>
+<div className="section-heading" style={{ marginBottom: 2 }}>{store.is24hr ? "Daytime pharmacy hours" : mode === "improve" ? "Hours of operation" : "Operating hours"}</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 10, lineHeight: 1.6 }}>{store.is24hr ? "When does the daytime pharmacy operate?" : mode === "improve" ? <span>Confirm current hours below.<br />If they{"\u2019"}re changing, you{"\u2019"}ll enter the new ones too.</span> : "When is the pharmacy open?"}</div>
 <Card style={{ padding: 14 }}>
 {mode === "improve" ? <div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 2 }}>Current Operating Hours <span style={{ fontWeight: 500, color: Co.txMu }}>{"\u00B7"} {fmtH(mode === "improve" && store._hoursChanged && store._originalBudget ? store._originalBudget : store.allocatedHoursPerWeek)}h demand</span></div> : null}
@@ -484,7 +469,7 @@ return <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, padd
 {/* STEP 2: Store Traffic */}
 {step === 2 && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Store traffic</div>
+<div className="section-heading">Store traffic</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 14 }}>Which days are busiest? Tap arrows to reorder. Tap = to tie.</div>
 <Card>
 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Busiest to least busy</div>
@@ -531,7 +516,7 @@ return <div key={grp.key} style={{ padding: "4px 0", borderBottom: "1px solid " 
 {/* STEP 3: Team list */}
 {step === 3 && !editP && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Add your pharmacist team</div>
+<div className="section-heading">Add your pharmacist team</div>
 {(function () {
 var pmCt = pharms.filter(function (p) { return p.role === "pm"; }).length;
 var staffCt = pharms.filter(function (p) { return p.role === "staff"; }).length;
@@ -559,7 +544,7 @@ return <div key={p.id} style={{ marginBottom: 8 }}>
 <div style={{ background: Co.card, borderRadius: 10, boxShadow: shadow.md, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, borderLeft: "3px solid " + (p.role === "ovnt" ? Co.pu : p.role === "dsp" ? Co.tl : p.color) }}>
 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 700 }}>{p.name} <span style={{ fontSize: 11, color: Co.txMu, fontWeight: 500 }}>{p.role === "pm" ? "PM" : p.role === "ovnt" ? "OVNT" : p.role === "dsp" ? "DSP" : "Staff"} {"\u00B7"} {p.targetHours}h/wk</span></div>{tags.length > 0 ? <div style={{ fontSize: 11, color: Co.txMu, marginTop: 2 }}>{tags.join(" \u00B7 ")}</div> : <div style={{ fontSize: 11, color: Co.txD, marginTop: 2 }}>Fully flexible</div>}</div>
 <Btn style={{ padding: "3px 8px", fontSize: 11 }} onClick={function () { setEditP({ ...p, prefs: { ...defPrefs(), ...p.prefs } }); }}>Edit</Btn>
-<span onClick={function () { setRemoving(removing === p.id ? null : p.id); }} style={{ fontSize: 12, color: Co.txD, cursor: "pointer", padding: "2px 4px" }}>{"\u2715"}</span>
+<span role="button" tabIndex={0} aria-label={"Remove " + firstName(p)} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setRemoving(removing === p.id ? null : p.id); } }} onClick={function () { setRemoving(removing === p.id ? null : p.id); }} style={{ fontSize: 12, color: Co.txD, cursor: "pointer", padding: "2px 4px" }}>{"\u2715"}</span>
 </div>
 {removing === p.id ? <div style={{ background: Co.bg, borderRadius: "0 0 10px 10px", padding: "10px 14px", marginTop: -4, display: "flex", gap: 6, alignItems: "center" }}><span style={{ fontSize: 11, color: Co.txMu, flex: 1 }}>Remove {firstName(p)}?</span><Btn style={{ padding: "4px 10px", fontSize: 11 }} onClick={function () { setPharms(function (pr) { return pr.filter(function (x) { return x.id !== p.id; }); }); setRemoving(null); setTeamWarning(null); }}>Drop</Btn><Btn variant="primary" style={{ padding: "4px 10px", fontSize: 11 }} onClick={function () { var isDsp = p.role === "dsp"; var newP = { id: Date.now() + Math.random(), name: "", role: p.role, color: p.color, targetHours: isDsp ? 15 : 40, minHours: isDsp ? 5 : 32, maxHours: isDsp ? 25 : 48, payPeriodHours: isDsp ? 30 : 80, earliestStart: "", latestEnd: "", maxShiftLength: isDsp ? 8 : 13, minShiftLength: isDsp ? 4 : 6, earlyStartMinutes: null, prefs: defPrefs() }; setPharms(function (pr) { return pr.map(function (x) { return x.id === p.id ? newP : x; }); }); setRemoving(null); setEditP(newP); }}>Replace</Btn></div> : null}
 </div>;
@@ -612,7 +597,7 @@ var defaultMin = base - 8; var defaultMax = base + 8;
 var hasRange = editP._showRange || (editP.minHours && editP.maxHours && (editP.minHours !== defaultMin || editP.maxHours !== defaultMax));
 return <div>
 <div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8 }}>Weekly Base Hours</div>
-<div style={{ display: "flex", gap: 0, borderRadius: 6, overflow: "hidden", border: "1px solid " + Co.bdr, marginBottom: 10 }}>
+<div className="seg-control" style={{ border: "1px solid " + Co.bdr, marginBottom: 10 }}>
 <div onClick={function () { setEditP(function (p) { var b = +p.targetHours || 40; return { ...p, _showRange: false, minHours: b - 8, maxHours: b + 8 }; }); }} style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center", background: !hasRange ? Co.ac : "transparent", color: !hasRange ? "#fff" : Co.txMu }}>Exact hours</div>
 <div onClick={function () { setEditP(function (p) { return { ...p, _showRange: true }; }); }} style={{ flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 600, cursor: "pointer", textAlign: "center", background: hasRange ? Co.am : "transparent", color: hasRange ? "#fff" : Co.txMu, borderLeft: "1px solid " + Co.bdr }}>Acceptable range</div>
 </div>
@@ -672,7 +657,7 @@ return <div>
 {/* STEP 4: Current template (improve) or Review (scratch) */}
 {step === 4 && mode === "improve" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 11 }}>Your current template</div>
+<div className="section-heading" style={{ marginBottom: 11 }}>Your current template</div>
 <div style={{ display: "flex", gap: 6, marginBottom: 11, flexWrap: "wrap" }}>
 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 11px", background: Co.gnS, borderRadius: 6 }}><span style={{ color: Co.gn, fontWeight: 700, fontSize: 14 }}>F</span><span style={{ fontSize: 11, color: Co.txMu }}>Full day</span></div>
 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 11px", background: "rgba(91,141,239,0.12)", borderRadius: 6 }}><span style={{ color: "#5B8DEF", fontWeight: 700, fontSize: 14 }}>{store.is24hr ? "E" : "O"}</span><span style={{ fontSize: 11, color: Co.txMu }}>/</span><span style={{ color: Co.pu, fontWeight: 700, fontSize: 14 }}>{store.is24hr ? "L" : "C"}</span><span style={{ fontSize: 11, color: Co.txMu }}>Split</span></div>
@@ -733,7 +718,7 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 )}
 {step === 4 && mode !== "improve" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Ready</div>
+<div className="section-heading" style={{ marginBottom: 16 }}>Ready</div>
 <Card>
 <div style={{ ...mono, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{store.storeLabel || "Store"}{store.is24hr ? " (24hr)" : ""}</div>
 <div style={{ fontSize: 12, color: Co.txMu, marginBottom: 10 }}>{store.allocatedHoursPerWeek}h/wk {"\u00B7"} {store.rotationWeeks}-wk {"\u00B7"} {pharms.length} RPh</div>
@@ -1043,7 +1028,7 @@ return <div key={px.id} style={{ display: "flex", alignItems: "center", gap: 4 }
 var hero = results[0]; var sc = hero.score; var gClr = gc(sc.grade);
 var reportText = genSummaryText(store, sc, pharms, hero, true);
 return <div>
-<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", flex: 1 }}>Full Report</div><div style={{ padding: "6px 14px", borderRadius: 8, background: gClr, ...mono, fontSize: 18, fontWeight: 700, color: "#fff" }}>{sc.grade}</div></div>
+<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><div style={{ flex: 1 }} className="section-heading">Full Report</div><div style={{ padding: "6px 14px", borderRadius: 8, background: gClr, ...mono, fontSize: 18, fontWeight: 700, color: "#fff" }}>{sc.grade}</div></div>
 <Card style={{ padding: 16 }}><pre style={{ ...mono, fontSize: 12, color: Co.tx, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{reportText}</pre></Card>
 <div style={{ textAlign: "center", padding: "20px 0 8px" }}>
 <div style={{ fontSize: 12, color: Co.txMu }}>Generated by <span style={{ fontWeight: 600 }}>RxRotation Lite</span></div>
