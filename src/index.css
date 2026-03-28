@@ -268,11 +268,18 @@ body {
 
 /* Focus styles */
 [role="button"]:focus-visible,
+[role="switch"]:focus-visible,
 .icon-btn:focus-visible,
 .landing-card-improve:focus-visible,
 .landing-card-scratch:focus-visible {
   outline: 2px solid var(--ac);
   outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: -1px;
 }
 
 /* Reduced motion */
