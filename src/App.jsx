@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DAYS, Co, shadow, font, mono, PC, setTheme } from "./theme.js";
-import { t2m, m2t, snap30, fmtH, tL, hSpan, opHrs, scriptVolume, firstName } from "./utils.js";
+import { t2m, m2t, snap30, fmtH, tL, opHrs, firstName } from "./utils.js";
 import { defPrefs, defHours, generateSchedule, validateCandidate, scoreTemplate, genSummaryText, genNarrative } from "./logic/scheduler.js";
 import { Btn, Inp, Sel, TSel, Tog, NW, Card, Collapsible } from "./components/ui.jsx";
 var INITIAL_STORE = { storeLabel: "", allocatedHoursPerWeek: 81, is24hr: false, rotationWeeks: 2, hours: defHours(), dayRanking: ["Mon", "Tue", "Fri", "Wed", "Thu", "Sat", "Sun"], dayTies: [3], peak: { weekday: [{ start: "12:00", end: "17:00" }], saturday: [{ start: "11:00", end: "16:00" }], sunday: [{ start: "12:00", end: "15:00" }] }, dspDays: [], pmAnchorBusiest: true };
