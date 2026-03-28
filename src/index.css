@@ -105,6 +105,18 @@ body {
   border-radius: 2px;
 }
 
+.section-heading {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.section-subtext {
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
 /* App container */
 .app-container {
   max-width: 520px;

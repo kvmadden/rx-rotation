@@ -330,8 +330,8 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 {/* STEP 0: Store basics */}
 {step === 0 && mode === "scratch" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Store basics</div>
-<div style={{ fontSize: 13, color: Co.txMu, marginBottom: 16 }}>Set your RPh demand hours and rotation length.</div>
+<div className="section-heading">Store basics</div>
+<div className="section-subtext" style={{ color: Co.txMu }}>Set your RPh demand hours and rotation length.</div>
 {/* TOP ROW: 2x1 grid */}
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
 <Card style={{ padding: 12, marginBottom: 0 }}>
@@ -377,8 +377,8 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 )}
 {step === 0 && mode === "improve" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Store basics</div>
-<div style={{ fontSize: 13, color: Co.txMu, marginBottom: 16 }}>Confirm what{"'"}s staying the same and what{"'"}s changing.</div>
+<div className="section-heading">Store basics</div>
+<div className="section-subtext" style={{ color: Co.txMu }}>Confirm what{"'"}s staying the same and what{"'"}s changing.</div>
 {/* TOP ROW: 2x1 grid */}
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
 <Card style={{ padding: 12, marginBottom: 0 }}>
@@ -452,7 +452,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 {/* STEP 1: Operating Hours */}
 {step === 1 && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 2 }}>{store.is24hr ? "Daytime pharmacy hours" : mode === "improve" ? "Hours of operation" : "Operating hours"}</div>
+<div className="section-heading" style={{ marginBottom: 2 }}>{store.is24hr ? "Daytime pharmacy hours" : mode === "improve" ? "Hours of operation" : "Operating hours"}</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 10, lineHeight: 1.6 }}>{store.is24hr ? "When does the daytime pharmacy operate?" : mode === "improve" ? <span>Confirm current hours below.<br />If they{"\u2019"}re changing, you{"\u2019"}ll enter the new ones too.</span> : "When is the pharmacy open?"}</div>
 <Card style={{ padding: 14 }}>
 {mode === "improve" ? <div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 2 }}>Current Operating Hours <span style={{ fontWeight: 500, color: Co.txMu }}>{"\u00B7"} {fmtH(mode === "improve" && store._hoursChanged && store._originalBudget ? store._originalBudget : store.allocatedHoursPerWeek)}h demand</span></div> : null}
@@ -508,8 +508,8 @@ return <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, padd
 {/* STEP 2: Store Traffic */}
 {step === 2 && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Store traffic</div>
-<div style={{ fontSize: 13, color: Co.txMu, marginBottom: 14 }}>Which days are busiest? Tap arrows to reorder. Tap = to tie.</div>
+<div className="section-heading">Store traffic</div>
+<div className="section-subtext" style={{ color: Co.txMu, marginBottom: 14 }}>Which days are busiest? Tap arrows to reorder. Tap = to tie.</div>
 <Card>
 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Busiest to least busy</div>
 {(function () {
@@ -555,7 +555,7 @@ return <div key={grp.key} style={{ padding: "4px 0", borderBottom: "1px solid " 
 {/* STEP 3: Team list */}
 {step === 3 && !editP && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 4 }}>Add your pharmacist team</div>
+<div className="section-heading">Add your pharmacist team</div>
 {(function () {
 var pmCt = pharms.filter(function (p) { return p.role === "pm"; }).length;
 var staffCt = pharms.filter(function (p) { return p.role === "staff"; }).length;
@@ -696,7 +696,7 @@ return <div>
 {/* STEP 4: Current template (improve) or Review (scratch) */}
 {step === 4 && mode === "improve" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 11 }}>Your current template</div>
+<div className="section-heading" style={{ marginBottom: 11 }}>Your current template</div>
 <div style={{ display: "flex", gap: 6, marginBottom: 11, flexWrap: "wrap" }}>
 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 11px", background: Co.gnS, borderRadius: 6 }}><span style={{ color: Co.gn, fontWeight: 700, fontSize: 14 }}>F</span><span style={{ fontSize: 11, color: Co.txMu }}>Full day</span></div>
 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 11px", background: "rgba(91,141,239,0.12)", borderRadius: 6 }}><span style={{ color: "#5B8DEF", fontWeight: 700, fontSize: 14 }}>{store.is24hr ? "E" : "O"}</span><span style={{ fontSize: 11, color: Co.txMu }}>/</span><span style={{ color: Co.pu, fontWeight: 700, fontSize: 14 }}>{store.is24hr ? "L" : "C"}</span><span style={{ fontSize: 11, color: Co.txMu }}>Split</span></div>
@@ -757,7 +757,7 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 )}
 {step === 4 && mode !== "improve" && (
 <div>
-<div style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Ready</div>
+<div className="section-heading" style={{ marginBottom: 16 }}>Ready</div>
 <Card>
 <div style={{ ...mono, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{store.storeLabel || "Store"}{store.is24hr ? " (24hr)" : ""}</div>
 <div style={{ fontSize: 12, color: Co.txMu, marginBottom: 10 }}>{store.allocatedHoursPerWeek}h/wk {"\u00B7"} {store.rotationWeeks}-wk {"\u00B7"} {pharms.length} RPh</div>
@@ -1068,7 +1068,7 @@ return <div key={px.id} style={{ display: "flex", alignItems: "center", gap: 4 }
 var hero = results[0]; var sc = hero.score; var gClr = gc(sc.grade);
 var reportText = genSummaryText(store, sc, pharms, hero, true);
 return <div>
-<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", flex: 1 }}>Full Report</div><div style={{ padding: "6px 14px", borderRadius: 8, background: gClr, ...mono, fontSize: 18, fontWeight: 700, color: "#fff" }}>{sc.grade}</div></div>
+<div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><div className="section-heading" style={{ flex: 1, marginBottom: 0 }}>Full Report</div><div style={{ padding: "6px 14px", borderRadius: 8, background: gClr, ...mono, fontSize: 18, fontWeight: 700, color: "#fff" }}>{sc.grade}</div></div>
 <Card style={{ padding: 16 }}><pre style={{ ...mono, fontSize: 12, color: Co.tx, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{reportText}</pre></Card>
 <div style={{ textAlign: "center", padding: "20px 0 8px" }}>
 <div style={{ fontSize: 12, color: Co.txMu }}>Generated by <span style={{ fontWeight: 600 }}>RxRotation Lite</span></div>
