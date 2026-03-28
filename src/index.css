@@ -25,6 +25,9 @@
   --shadow-lg: 0 4px 16px rgba(28,25,23,0.08);
   --font: 'IBM Plex Sans', -apple-system, sans-serif;
   --mono: 'IBM Plex Mono', monospace;
+  --ease-fast: 0.1s ease;
+  --ease-normal: 0.15s ease;
+  --ease-slow: 0.3s ease;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -165,7 +168,7 @@ body {
   align-items: baseline;
   gap: 3px;
   flex-shrink: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--ease-normal);
 }
 
 .header-divider {
@@ -185,7 +188,7 @@ body {
 .progress-bar-fill {
   height: 100%;
   background: var(--ac);
-  transition: width 0.3s;
+  transition: width var(--ease-slow);
 }
 
 /* Section headings */
@@ -235,6 +238,16 @@ body {
 .seg-control-option:focus-visible {
   outline: 2px solid var(--ac);
   outline-offset: -2px;
+}
+
+/* Step content fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-content {
+  animation: fadeIn 0.25s ease-out;
 }
 
 /* Focus styles */
@@ -290,5 +303,9 @@ body {
   [role="tab"],
   [role="checkbox"] {
     cursor: default !important;
+  }
+
+  .step-content {
+    animation: none !important;
   }
 }

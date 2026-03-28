@@ -40,10 +40,10 @@ var [history, setHistory] = useState([]);
 var flashTimers = useRef({});
 function flashFor(key, duration) {
   if (flashTimers.current[key]) clearTimeout(flashTimers.current[key]);
-  setFlash(function (f) { var n = {}; for (var k in f) n[k] = f[k]; n[key] = true; return n; });
-  flashTimers.current[key] = setTimeout(function () { setFlash(function (f) { var n = {}; for (var k in f) n[k] = f[k]; delete n[key]; return n; }); delete flashTimers.current[key]; }, duration || 600);
+  setFlash(function (f) { return { ...f, [key]: true }; });
+  flashTimers.current[key] = setTimeout(function () { setFlash(function (f) { var n = { ...f }; delete n[key]; return n; }); delete flashTimers.current[key]; }, duration || 600);
 }
-function flashSet(key, val) { setFlash(function (f) { var n = {}; for (var k in f) n[k] = f[k]; if (val === false || val === undefined) delete n[key]; else n[key] = val; return n; }); }
+function flashSet(key, val) { setFlash(function (f) { if (val === false || val === undefined) { var n = { ...f }; delete n[key]; return n; } return { ...f, [key]: val }; }); }
 useEffect(function () { var timers = flashTimers.current; return function () { Object.values(timers).forEach(clearTimeout); }; }, []);
 useEffect(function () { function onKey(e) { if (e.key === "Escape") { if (showHelp) setShowHelp(false); } } document.addEventListener("keydown", onKey); return function () { document.removeEventListener("keydown", onKey); }; }, [showHelp]);
 function addPharm() {
@@ -144,7 +144,7 @@ prefCosts.push({ pharmacistId: p.id, pharmacistName: firstName(p), color: p.colo
 });
 });
 }
-setResults(all); setWhatIf(prefCosts); setShowWk(0); setResultPanel(null); setGenerating(false); setStep(5);
+setResults(all); setWhatIf(prefCosts); setShowWk(0); setResultPanel(null); setGenerating(false); setStep(5); window.scrollTo({ top: 0, behavior: "smooth" });
 }, 0);
 }, 0);
 } catch (err) { console.error("Schedule generation error:", err); setGenerating(false); setTeamWarning("Generation failed: " + (err.message || "unexpected error") + ". Try adjusting your inputs."); }
@@ -165,8 +165,9 @@ var preResultsSteps = 5;
 var curVisible = step + 1;
 var progress = mode === null ? 0 : step >= resultsStep ? 100 : Math.round((curVisible / (preResultsSteps + 1)) * 100);
 function pushHistory() { setHistory(function (h) { return h.concat([{ step: step, store: JSON.parse(JSON.stringify(store)), pharms: JSON.parse(JSON.stringify(pharms)) }]); }); }
-function nextStep() { pushHistory(); setShowMissing(false); setStep(step + 1); }
-function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); setStep(prev.step); return h.slice(0, -1); }); }
+function nextStep() { pushHistory(); setShowMissing(false); setStep(step + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function prevStep() { setShowMissing(false); setTeamWarning(null); setFlash({}); if (step === 0) { setMode(null); return; } setHistory(function (h) { if (h.length === 0) { setStep(step - 1); return h; } var prev = h[h.length - 1]; setStore(JSON.parse(JSON.stringify(prev.store))); setPharms(JSON.parse(JSON.stringify(prev.pharms))); setStep(prev.step); return h.slice(0, -1); }); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function set24hr(val) { if (val) { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); } else { setStore(function (s) { return { ...s, is24hr: false }; }); } }
 function storeTopRow() { return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
 <Card style={{ padding: 12, marginBottom: 0 }}>
 <div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>Store Label</div>
@@ -175,8 +176,8 @@ function storeTopRow() { return <div style={{ display: "grid", gridTemplateColum
 <Card style={{ padding: 12, marginBottom: 0 }}>
 <div style={{ fontSize: 13, fontWeight: 700, color: Co.tx, marginBottom: 8, textAlign: "center" }}>24-Hour Pharmacy?</div>
 <div style={{ display: "flex", gap: 4 }}>
-<div role="button" tabIndex={0} aria-pressed={store.is24hr} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); } }} onClick={function () { var s2 = { ...store, is24hr: true }; if (!s2.ovnt) s2.ovnt = { wkdayIn: "21:00", wkdayOut: "08:00", wkndIn: "21:00", wkndOut: "09:00" }; setStore(s2); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
-<div role="button" tabIndex={0} aria-pressed={!store.is24hr} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStore(function (s) { return { ...s, is24hr: false }; }); } }} onClick={function () { setStore(function (s) { return { ...s, is24hr: false }; }); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
+<div role="button" tabIndex={0} aria-pressed={store.is24hr} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); set24hr(true); } }} onClick={function () { set24hr(true); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: store.is24hr ? Co.pu : "transparent", color: store.is24hr ? "#fff" : Co.txMu, border: "1px solid " + (store.is24hr ? Co.pu : Co.bdr) }}>Yes</div>
+<div role="button" tabIndex={0} aria-pressed={!store.is24hr} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); set24hr(false); } }} onClick={function () { set24hr(false); }} style={{ flex: 1, padding: "10px 0", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "center", background: !store.is24hr ? Co.tx + "15" : "transparent", color: !store.is24hr ? Co.tx : Co.txMu, border: "1px solid " + (!store.is24hr ? Co.tx + "40" : Co.bdr) }}>No</div>
 </div>
 </Card>
 </div>; }
@@ -318,7 +319,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px 80px" }}>
 {/* LANDING PAGE */}
 {mode === null && (
-<div style={{ paddingTop: 12 }}>
+<div className="step-content" style={{ paddingTop: 12 }}>
 <div style={{ marginBottom: 20, paddingLeft: 4, position: "relative" }}>
 <svg width="80" height="80" viewBox="0 0 24 24" style={{ position: "absolute", top: -4, right: 24, opacity: 0.1, animation: "spin 20s linear infinite" }}><path d="M21 2v6h-6" fill="none" stroke={Co.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8" fill="none" stroke={Co.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 22v-6h6" fill="none" stroke={dark ? "#ffffff" : "#1c1917"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M21 12a9 9 0 0 1-15.36 6.36L3 16" fill="none" stroke={dark ? "#ffffff" : "#1c1917"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
 <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.03em", color: Co.tx, lineHeight: 1.1 }}><span style={{ color: Co.ac }}>Rx</span>Rotation <span style={{ fontSize: 13, fontWeight: 600, color: Co.txMu, letterSpacing: 0.5, padding: "2px 8px", background: Co.bg, border: "1px solid " + Co.bdr, borderRadius: 4, verticalAlign: "middle", position: "relative", top: -2 }}>LITE</span></div>
@@ -341,7 +342,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 )}
 {/* STEP 0: Store basics */}
 {step === 0 && mode === "scratch" && (
-<div>
+<div className="step-content">
 <div className="section-heading">Store basics</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 16 }}>Set your RPh demand hours and rotation length.</div>
 {storeTopRow()}
@@ -366,7 +367,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 </div>
 )}
 {step === 0 && mode === "improve" && (
-<div>
+<div className="step-content">
 <div className="section-heading">Store basics</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 16 }}>Confirm what{"'"}s staying the same and what{"'"}s changing.</div>
 {storeTopRow()}
@@ -428,7 +429,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 )}
 {/* STEP 1: Operating Hours */}
 {step === 1 && (
-<div>
+<div className="step-content">
 <div className="section-heading" style={{ marginBottom: 2 }}>{store.is24hr ? "Daytime pharmacy hours" : mode === "improve" ? "Hours of operation" : "Operating hours"}</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 10, lineHeight: 1.6 }}>{store.is24hr ? "When does the daytime pharmacy operate?" : mode === "improve" ? <span>Confirm current hours below.<br />If they{"\u2019"}re changing, you{"\u2019"}ll enter the new ones too.</span> : "When is the pharmacy open?"}</div>
 <Card style={{ padding: 14 }}>
@@ -484,7 +485,7 @@ return <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, padd
 )}
 {/* STEP 2: Store Traffic */}
 {step === 2 && (
-<div>
+<div className="step-content">
 <div className="section-heading">Store traffic</div>
 <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 14 }}>Which days are busiest? Tap arrows to reorder. Tap = to tie.</div>
 <Card>
@@ -531,7 +532,7 @@ return <div key={grp.key} style={{ padding: "4px 0", borderBottom: "1px solid " 
 )}
 {/* STEP 3: Team list */}
 {step === 3 && !editP && (
-<div>
+<div className="step-content">
 <div className="section-heading">Add your pharmacist team</div>
 {(function () {
 var pmCt = pharms.filter(function (p) { return p.role === "pm"; }).length;
@@ -550,7 +551,7 @@ if (staffCt > expectedStaff) return <div style={{ fontSize: 13, color: Co.txMu, 
 return <div style={{ fontSize: 13, color: Co.txMu, marginBottom: 10 }}>Team looks good for a {rot}-week rotation.</div>;
 })()}
 {mode === "improve" ? <div style={{ padding: "10px 14px", marginBottom: 10, opacity: 0.7, borderRadius: 12, border: "1px solid " + Co.bdr }}><div role="button" tabIndex={0} aria-expanded={tipOpen} onKeyDown={function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTipOpen(!tipOpen); } }} onClick={function () { setTipOpen(!tipOpen); }} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}><div style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>Replacing a pharmacist in the rotation?</div><span style={{ fontSize: 11, color: Co.txMu, marginRight: 6 }}>{tipOpen ? "" : "Tap for guidance"}</span><span style={{ fontSize: 14, color: Co.txD, transform: tipOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>{"\u203A"}</span></div>{tipOpen ? <div style={{ marginTop: 8, borderTop: "1px solid " + Co.bdrL, paddingTop: 8 }}><div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.5 }}>If someone left and is being replaced, keep the same role and hours when inputting your current template. Use a default label like {"\u201C"}Staff RPh A{"\u201D"} {"\u2014"} the new person inherits the shift until an optimized new template is generated and agreed upon. Only use <span style={{ fontWeight: 600 }}>Build a new template</span> for drastic changes like new team size, new hours of operation, or new rotation cycle length.</div></div> : null}</div> : null}
-{teamWarning && !teamWarning.includes("to continue") ? <div style={{ padding: "12px 14px", background: Co.amS, borderRadius: 10, marginBottom: 12, border: "1px solid " + Co.am + "40", transition: "transform 0.15s, box-shadow 0.15s", transform: flash.team ? "scale(1.03)" : "none", boxShadow: flash.team ? "0 0 0 2px " + Co.am + "60" : "none" }}><div style={{ fontSize: 12, color: Co.am, fontWeight: 600, marginBottom: 8 }}>{teamWarning}</div><div style={{ display: "flex", gap: 8 }}><Btn style={{ padding: "5px 12px", fontSize: 11, flex: 1 }} onClick={function () { setTeamWarning(null); }}>Go back</Btn><Btn variant="primary" style={{ padding: "5px 12px", fontSize: 11, flex: 1 }} onClick={function () { setTeamWarning(null); pushHistory(); if (mode === "improve") { initCurSched(); } setStore(function (s) { return { ...s, _originalBudget: s.allocatedHoursPerWeek }; }); setStep(4); }}>Continue anyway</Btn></div></div> : null}
+{teamWarning && !teamWarning.includes("to continue") ? <div style={{ padding: "12px 14px", background: Co.amS, borderRadius: 10, marginBottom: 12, border: "1px solid " + Co.am + "40", transition: "transform 0.15s, box-shadow 0.15s", transform: flash.team ? "scale(1.03)" : "none", boxShadow: flash.team ? "0 0 0 2px " + Co.am + "60" : "none" }}><div style={{ fontSize: 12, color: Co.am, fontWeight: 600, marginBottom: 8 }}>{teamWarning}</div><div style={{ display: "flex", gap: 8 }}><Btn style={{ padding: "5px 12px", fontSize: 11, flex: 1 }} onClick={function () { setTeamWarning(null); }}>Go back</Btn><Btn variant="primary" style={{ padding: "5px 12px", fontSize: 11, flex: 1 }} onClick={function () { setTeamWarning(null); pushHistory(); if (mode === "improve") { initCurSched(); } setStore(function (s) { return { ...s, _originalBudget: s.allocatedHoursPerWeek }; }); setStep(4); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Continue anyway</Btn></div></div> : null}
 {pharms.length >= 2 && combinedTarget > (+store.allocatedHoursPerWeek || 0) ? <div style={{ padding: "8px 12px", background: Co.amS, borderRadius: 8, marginBottom: 10, fontSize: 11, color: Co.am, fontWeight: 600 }}>Team hours ({combinedTarget}h) exceed demand hours ({store.allocatedHoursPerWeek}h).</div> : null}
 {pharms.map(function (p) {
 var tags = [];
@@ -672,7 +673,7 @@ return <div>
 )}
 {/* STEP 4: Current template (improve) or Review (scratch) */}
 {step === 4 && mode === "improve" && (
-<div>
+<div className="step-content">
 <div className="section-heading" style={{ marginBottom: 11 }}>Your current template</div>
 <div style={{ display: "flex", gap: 6, marginBottom: 11, flexWrap: "wrap" }}>
 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 11px", background: Co.gnS, borderRadius: 6 }}><span style={{ color: Co.gn, fontWeight: 700, fontSize: 14 }}>F</span><span style={{ fontSize: 11, color: Co.txMu }}>Full day</span></div>
@@ -733,7 +734,7 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 </div>
 )}
 {step === 4 && mode !== "improve" && (
-<div>
+<div className="step-content">
 <div className="section-heading" style={{ marginBottom: 16 }}>Ready</div>
 <Card>
 <div style={{ ...mono, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>{store.storeLabel || "Store"}{store.is24hr ? " (24hr)" : ""}</div>
@@ -742,9 +743,16 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 </Card>
 </div>
 )}
+{step === 4 && generating && (
+<Card style={{ textAlign: "center", padding: "32px 20px" }}>
+<div style={{ width: 32, height: 32, border: "3px solid " + Co.bdr, borderTopColor: Co.ac, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 14px" }} />
+<div style={{ fontSize: 14, fontWeight: 600, color: Co.tx }}>Generating schedules...</div>
+<div style={{ fontSize: 12, color: Co.txMu, marginTop: 4 }}>Testing 80 seed configurations across 6 scoring criteria</div>
+</Card>
+)}
 {/* STEP 5: Results */}
 {step === 5 && results && results.length === 0 && (
-<div>
+<div className="step-content">
 <Card style={{ padding: 20, borderLeft: "3px solid " + Co.rd }}>
 <div style={{ fontSize: 16, fontWeight: 700, color: Co.rd, marginBottom: 8 }}>{"\u26A0"} No Valid Schedule Found</div>
 <div style={{ fontSize: 13, color: Co.txM, lineHeight: 1.6, marginBottom: 12 }}>The engine tested 40 different seed configurations and couldn{"'"}t produce a schedule that meets minimum coverage requirements within the allocated demand hours.</div>
@@ -781,7 +789,7 @@ var freeCosts = prefCosts.filter(function (c) { return c.costLevel === "free"; }
 var lowCosts = prefCosts.filter(function (c) { return c.costLevel === "low"; });
 var manageCosts = prefCosts.filter(function (c) { return c.costLevel === "manageable"; });
 var expensiveCosts = prefCosts.filter(function (c) { return c.costLevel === "expensive" || c.costLevel === "not_advisable"; });
-return <div>
+return <div className="step-content">
 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
 <div style={{ flex: 1 }}>
 <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em" }}>{store.storeLabel ? store.storeLabel : "Schedule"}</div>
@@ -1043,7 +1051,7 @@ return <div key={px.id} style={{ display: "flex", alignItems: "center", gap: 4 }
 {step === 6 && results && results.length > 0 && (function () {
 var hero = results[0]; var sc = hero.score; var gClr = gc(sc.grade);
 var reportText = genSummaryText(store, sc, pharms, hero, true);
-return <div>
+return <div className="step-content">
 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><div style={{ flex: 1 }} className="section-heading">Full Report</div><div style={{ padding: "6px 14px", borderRadius: 8, background: gClr, ...mono, fontSize: 18, fontWeight: 700, color: "#fff" }}>{sc.grade}</div></div>
 <Card style={{ padding: 16 }}><pre style={{ ...mono, fontSize: 12, color: Co.tx, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{reportText}</pre></Card>
 <div style={{ textAlign: "center", padding: "20px 0 8px" }}>
@@ -1078,11 +1086,11 @@ return <Btn variant="primary" onClick={function () {
 if (!canProgress) { var parts = []; if (pmCt < 1) parts.push("a PM"); if (staffCt < 1) parts.push("a Staff RPh"); if (store.is24hr && ovntCt < 2) parts.push("2 OVNT RPh"); setTeamWarning("Add " + parts.join(" and ") + " to continue."); flashFor("team", 400); return; }
 var rot = store.rotationWeeks;
 if (!teamWarning) { if (rot === 2 && staffCt > 1) { setTeamWarning("2-week rotations typically have 1 PM and 1 Staff RPh. You currently have " + staffCt + " Staff RPh. Continue anyway?"); return; } if (rot === 3 && staffCt !== 2) { setTeamWarning("3-week rotations typically have 1 PM and 2 Staff RPh. You currently have " + staffCt + " Staff RPh. Continue anyway?"); return; } if (rot === 4 && staffCt < 2) { setTeamWarning("4-week rotations typically have 1 PM and 2\u20133 Staff RPh. You currently have " + staffCt + " Staff RPh. Continue anyway?"); return; } if (rot === 5 && staffCt < 2) { setTeamWarning("5-week rotations typically have 1 PM and 2\u20134 Staff RPh. You currently have " + staffCt + " Staff RPh. Continue anyway?"); return; } }
-setTeamWarning(null); pushHistory(); if (mode === "improve") { initCurSched(); } setStore(function (s) { return { ...s, _originalBudget: s.allocatedHoursPerWeek }; }); setStep(4);
+setTeamWarning(null); pushHistory(); if (mode === "improve") { initCurSched(); } setStore(function (s) { return { ...s, _originalBudget: s.allocatedHoursPerWeek }; }); setStep(4); window.scrollTo({ top: 0, behavior: "smooth" });
 }} style={{ flex: 1, opacity: canProgress ? 1 : 0.5 }}><span style={{opacity:0.7}}>Next:</span> {mode === "improve" ? "Enter Current" : "Review"} <span style={{opacity:0.7}}>{"\u2192"}</span></Btn>;
 })() : null}
 {step === 4 ? <Btn variant="generate" onClick={doGenerate} disabled={generating} style={{ flex: 1 }}>{generating ? "Generating\u2026" : "Generate"}</Btn> : null}
-{step === 5 ? <Btn variant="primary" onClick={function () { setStep(6); }} style={{ flex: 2 }}>{"\uD83D\uDCCB"} Full Report</Btn> : null}
+{step === 5 ? <Btn variant="primary" onClick={function () { setStep(6); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ flex: 2 }}>{"\uD83D\uDCCB"} Full Report</Btn> : null}
 {step === 6 ? <Btn onClick={doReset} style={{ flex: 1 }}>{"\u21A9"} Start Over</Btn> : null}
 </div>
 </div>
