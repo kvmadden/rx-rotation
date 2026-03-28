@@ -107,9 +107,10 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 50;
   background: var(--card);
   border-top: 1px solid var(--bdr);
-  padding: 12px 16px 20px;
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -141,6 +142,15 @@ body {
   background: rgba(0,0,0,0.35);
 }
 
+.help-backdrop {
+  animation: fadeInBackdrop 0.2s ease-out;
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .help-panel {
   position: absolute;
   top: 0;
@@ -150,6 +160,12 @@ body {
   background: var(--sf);
   box-shadow: -4px 0 32px rgba(0,0,0,0.15);
   overflow-y: auto;
+  animation: slideInRight 0.2s ease-out;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 /* Header bar */
@@ -157,7 +173,7 @@ body {
   padding: 0 8px;
   display: flex;
   align-items: center;
-  height: 44;
+  height: 44px;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -257,6 +273,15 @@ body {
 .landing-card-scratch:focus-visible {
   outline: 2px solid var(--ac);
   outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Print styles */
