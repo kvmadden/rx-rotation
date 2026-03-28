@@ -350,7 +350,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center" }}>
 <span style={{ fontSize: 14, fontWeight: 700, color: showMissing && store.allocatedHoursPerWeek === "" ? Co.rd : Co.tx }}>RPh Demand Hours{showMissing && store.allocatedHoursPerWeek === "" ? <span style={{ color: Co.rd }}> *</span> : null}</span>
-<div style={{ flex: 1 }} />
+<div className="spacer" />
 <Inp type="number" step="0.5" value={store.allocatedHoursPerWeek === "" ? "" : store.allocatedHoursPerWeek} onChange={function (e) { setShowMissing(false); setStore(function (s) { return { ...s, allocatedHoursPerWeek: e.target.value === "" ? "" : Math.max(0, +e.target.value) }; }); }} onBlur={function () { setStore(function (s) { return { ...s, allocatedHoursPerWeek: s.allocatedHoursPerWeek === "" ? 81 : s.allocatedHoursPerWeek }; }); }} style={{ ...mono, fontSize: 17, fontWeight: 700, textAlign: "center", width: 74, height: 42, border: showMissing && store.allocatedHoursPerWeek === "" ? "1.5px solid " + Co.rd : "1px solid " + Co.bdr, padding: "2px 6px" }} />
 <span style={{ fontSize: 13, color: Co.txMu, marginLeft: 8, flexShrink: 0 }}>hours/week</span>
 </div>
@@ -359,7 +359,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center" }}>
 <span style={{ fontSize: 14, fontWeight: 700, color: Co.tx }}>Rotation Cycle Length</span>
-<div style={{ flex: 1 }} />
+<div className="spacer" />
 <Sel value={store.rotationWeeks} onChange={function (v) { setStore(function (s) { return { ...s, rotationWeeks: +v }; }); }} style={{ width: 128, padding: "12px 28px 14px 10px", ...mono, fontSize: 15, fontWeight: 700 }}><option value={2}>2 weeks</option><option value={3}>3 weeks</option><option value={4}>4 weeks</option><option value={5}>5 weeks</option></Sel>
 </div>
 </Card>
@@ -397,7 +397,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
 <span style={{ fontSize: 14, fontWeight: 700, color: Co.tx }}>Current RPh Demand Hours</span>
-<div style={{ flex: 1 }} />
+<div className="spacer" />
 <Inp type="number" step="0.5" value={store._hoursChanged ? (store._originalBudget === "" ? "" : store._originalBudget) : (store.allocatedHoursPerWeek === "" ? "" : store.allocatedHoursPerWeek)} onChange={function (e) { setShowMissing(false); var v = e.target.value === "" ? "" : Math.max(0, +e.target.value); setStore(function (s) { if (s._hoursChanged) { return { ...s, _originalBudget: v }; } return { ...s, allocatedHoursPerWeek: v }; }); }} onBlur={function () { setStore(function (s) { if (s._hoursChanged) { return { ...s, _originalBudget: s._originalBudget === "" ? 81 : s._originalBudget }; } return { ...s, allocatedHoursPerWeek: s.allocatedHoursPerWeek === "" ? 81 : s.allocatedHoursPerWeek }; }); }} style={{ ...mono, fontSize: 17, fontWeight: 700, textAlign: "center", width: 74, height: 42, border: showMissing && store.allocatedHoursPerWeek === "" ? "1.5px solid " + Co.rd : "1px solid " + Co.bdr, padding: "2px 6px" }} />
 <span style={{ fontSize: 13, color: Co.txMu, marginLeft: 8, flexShrink: 0 }}>hours/week</span>
 </div>
@@ -407,7 +407,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 </div>
 {store._hoursChanged ? <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid " + Co.bdrL, display: "flex", alignItems: "center" }}>
 <span style={{ fontSize: 14, color: Co.am, fontWeight: 700 }}>New RPh Demand Hours</span>
-<div style={{ flex: 1 }} />
+<div className="spacer" />
 <Inp type="number" step="0.5" value={store.allocatedHoursPerWeek === "" ? "" : store.allocatedHoursPerWeek} onChange={function (e) { setStore(function (s) { return { ...s, allocatedHoursPerWeek: e.target.value === "" ? "" : Math.max(0, +e.target.value) }; }); }} style={{ ...mono, fontSize: 17, fontWeight: 700, textAlign: "center", width: 74, height: 42, padding: "2px 6px" }} />
 <span style={{ fontSize: 13, color: Co.txMu, marginLeft: 8, flexShrink: 0 }}>hours/week</span>
 </div> : null}
@@ -417,7 +417,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 <Card style={{ padding: "14px 16px", marginBottom: 10 }}>
 <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
 <span style={{ fontSize: 14, fontWeight: 700, color: Co.tx }}>Current Rotation Cycle Length</span>
-<div style={{ flex: 1 }} />
+<div className="spacer" />
 <Sel value={store._rotChanged ? (store._originalRot || store.rotationWeeks) : store.rotationWeeks} onChange={function (v) { setStore(function (s) { if (s._rotChanged) { return { ...s, _originalRot: +v }; } return { ...s, rotationWeeks: +v }; }); }} style={{ width: 128, padding: "12px 28px 14px 10px", ...mono, fontSize: 15, fontWeight: 700 }}><option value={2}>2 weeks</option><option value={3}>3 weeks</option><option value={4}>4 weeks</option><option value={5}>5 weeks</option></Sel>
 </div>
 <div className="toggle-group" style={{ border: "1px solid " + Co.bdr }}>
@@ -469,7 +469,7 @@ return <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, padd
 <span style={{ ...mono, fontSize: 11, color: dh.isOpen ? Co.txMu : Co.txD, minWidth: 24, textAlign: "right", flexShrink: 0 }}>{dh.isOpen ? fmtH(dayHrs) + "h" : ""}</span>
 </div>;
 })}
-<div style={{ display: "flex", alignItems: "center", marginTop: 4, padding: "4px 0", gap: 8 }}><span style={{ fontSize: 12, fontWeight: 600 }}>Total</span><span style={{ ...mono, fontSize: 13, fontWeight: 700, color: Co.tx }}>{fmtH(mode === "improve" && store._hoursOfOpChanged && store._originalHours ? opHrs(store._originalHours) : storeOpHrs)}h/wk</span><div style={{ flex: 1 }} />{(function () {
+<div style={{ display: "flex", alignItems: "center", marginTop: 4, padding: "4px 0", gap: 8 }}><span style={{ fontSize: 12, fontWeight: 600 }}>Total</span><span style={{ ...mono, fontSize: 13, fontWeight: 700, color: Co.tx }}>{fmtH(mode === "improve" && store._hoursOfOpChanged && store._originalHours ? opHrs(store._originalHours) : storeOpHrs)}h/wk</span><div className="spacer" />{(function () {
 var curOpH = mode === "improve" && store._hoursOfOpChanged && store._originalHours ? opHrs(store._originalHours) : storeOpHrs;
 var curDemand = mode === "improve" && store._hoursChanged && store._originalBudget ? +store._originalBudget : +store.allocatedHoursPerWeek;
 if (curOpH <= 0 || curDemand <= 0) return null;
@@ -500,7 +500,7 @@ return <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, padd
 <span style={{ ...mono, fontSize: 11, color: changed ? Co.am : (dh.isOpen ? Co.txMu : Co.txD), minWidth: 24, textAlign: "right", flexShrink: 0 }}>{dh.isOpen ? fmtH(dayHrs) + "h" : ""}</span>
 </div>;
 })}
-{(function () { var newTotal = opHrs(store.hours); var oldTotal = store._originalHours ? opHrs(store._originalHours) : newTotal; var hDiff = newTotal - oldTotal; var newDemand = +store.allocatedHoursPerWeek; var bufDiff = newDemand - newTotal; var bufClr = bufDiff > 0 ? Co.tl : bufDiff === 0 ? Co.txMu : Co.rd; var bufBg = bufDiff > 0 ? Co.tlS : bufDiff === 0 ? Co.bg : Co.rdS; var bufMsg = bufDiff > 0 ? fmtH(bufDiff) + "h buffer" : bufDiff === 0 ? "Exact coverage" : fmtH(Math.abs(bufDiff)) + "h short — adjust to continue"; return <div style={{ display: "flex", alignItems: "center", marginTop: 4, padding: "4px 0", gap: 8 }}><span style={{ fontSize: 12, fontWeight: 600 }}>New Total</span><span style={{ ...mono, fontSize: 13, fontWeight: 700, color: Co.tx }}>{fmtH(newTotal)}h/wk</span>{hDiff !== 0 ? <span style={{ fontSize: 11, fontWeight: 600, color: hDiff > 0 ? Co.gn : Co.rd }}>{hDiff > 0 ? "\u25B2" : "\u25BC"} {fmtH(Math.abs(hDiff))}h</span> : null}<div style={{ flex: 1 }} />{newDemand > 0 ? <div style={{ display: "inline-flex", fontSize: 11, color: bufClr, fontWeight: 600, padding: "4px 10px", background: bufBg, borderRadius: 4, transition: "transform 0.15s, box-shadow 0.15s", transform: flash.newShortage && bufDiff < 0 ? "scale(1.04)" : "none", boxShadow: flash.newShortage && bufDiff < 0 ? "0 0 0 2px " + Co.rd + "60" : "none" }}>{bufMsg}</div> : null}</div>; })()}
+{(function () { var newTotal = opHrs(store.hours); var oldTotal = store._originalHours ? opHrs(store._originalHours) : newTotal; var hDiff = newTotal - oldTotal; var newDemand = +store.allocatedHoursPerWeek; var bufDiff = newDemand - newTotal; var bufClr = bufDiff > 0 ? Co.tl : bufDiff === 0 ? Co.txMu : Co.rd; var bufBg = bufDiff > 0 ? Co.tlS : bufDiff === 0 ? Co.bg : Co.rdS; var bufMsg = bufDiff > 0 ? fmtH(bufDiff) + "h buffer" : bufDiff === 0 ? "Exact coverage" : fmtH(Math.abs(bufDiff)) + "h short — adjust to continue"; return <div style={{ display: "flex", alignItems: "center", marginTop: 4, padding: "4px 0", gap: 8 }}><span style={{ fontSize: 12, fontWeight: 600 }}>New Total</span><span style={{ ...mono, fontSize: 13, fontWeight: 700, color: Co.tx }}>{fmtH(newTotal)}h/wk</span>{hDiff !== 0 ? <span style={{ fontSize: 11, fontWeight: 600, color: hDiff > 0 ? Co.gn : Co.rd }}>{hDiff > 0 ? "\u25B2" : "\u25BC"} {fmtH(Math.abs(hDiff))}h</span> : null}<div className="spacer" />{newDemand > 0 ? <div style={{ display: "inline-flex", fontSize: 11, color: bufClr, fontWeight: 600, padding: "4px 10px", background: bufBg, borderRadius: 4, transition: "transform 0.15s, box-shadow 0.15s", transform: flash.newShortage && bufDiff < 0 ? "scale(1.04)" : "none", boxShadow: flash.newShortage && bufDiff < 0 ? "0 0 0 2px " + Co.rd + "60" : "none" }}>{bufMsg}</div> : null}</div>; })()}
 </Card> : null}
 </div> : null}
 </div>
@@ -545,7 +545,7 @@ return result;
 {[{ key: "weekday", label: "Weekdays" }, { key: "saturday", label: "Saturday" }, { key: "sunday", label: "Sunday" }].map(function (grp) {
 var pks = (store.peak && store.peak[grp.key]) || [{ start: "12:00", end: "17:00" }]; if (!Array.isArray(pks)) pks = [pks];
 return <div key={grp.key} style={{ padding: "4px 0", borderBottom: "1px solid " + Co.bdrL }}>
-<div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}><div style={{ fontSize: 12, fontWeight: 600 }}>{grp.label}</div><div style={{ flex: 1 }} />{pks.length < 3 ? <span onClick={function () { setStore(function (s) { var p = { ...s.peak }; var arr = Array.isArray(p[grp.key]) ? p[grp.key].slice() : [p[grp.key] || { start: "12:00", end: "17:00" }]; arr.push({ start: "09:00", end: "12:00" }); p[grp.key] = arr; return { ...s, peak: p }; }); }} style={{ fontSize: 11, color: Co.ac, cursor: "pointer", fontWeight: 600 }}>+ Add window</span> : null}</div>
+<div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}><div style={{ fontSize: 12, fontWeight: 600 }}>{grp.label}</div><div className="spacer" />{pks.length < 3 ? <span onClick={function () { setStore(function (s) { var p = { ...s.peak }; var arr = Array.isArray(p[grp.key]) ? p[grp.key].slice() : [p[grp.key] || { start: "12:00", end: "17:00" }]; arr.push({ start: "09:00", end: "12:00" }); p[grp.key] = arr; return { ...s, peak: p }; }); }} style={{ fontSize: 11, color: Co.ac, cursor: "pointer", fontWeight: 600 }}>+ Add window</span> : null}</div>
 {pks.map(function (pk, pi) { return <div key={pi} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, paddingLeft: 8 }}><TSel value={pk.start} onChange={function (v) { setStore(function (s) { var p = { ...s.peak }; var arr = Array.isArray(p[grp.key]) ? p[grp.key].slice() : [p[grp.key]]; arr[pi] = { ...arr[pi], start: v }; p[grp.key] = arr; return { ...s, peak: p }; }); }} /><span style={{ fontSize: 11, color: Co.txD }}>to</span><TSel value={pk.end} onChange={function (v) { setStore(function (s) { var p = { ...s.peak }; var arr = Array.isArray(p[grp.key]) ? p[grp.key].slice() : [p[grp.key]]; arr[pi] = { ...arr[pi], end: v }; p[grp.key] = arr; return { ...s, peak: p }; }); }} />{pks.length > 1 ? <span onClick={function () { setStore(function (s) { var p = { ...s.peak }; var arr = Array.isArray(p[grp.key]) ? p[grp.key].slice() : [p[grp.key]]; arr.splice(pi, 1); p[grp.key] = arr; return { ...s, peak: p }; }); }} style={{ fontSize: 11, color: Co.txD, cursor: "pointer", padding: "0 4px" }}>{"\u2715"}</span> : null}</div>; })}
 </div>;
 })}
@@ -832,7 +832,7 @@ return <div style={{ padding: "10px 14px", background: Co.amS, borderRadius: 10,
 <div style={{ background: Co.card, borderRadius: 11, boxShadow: shadow.md, padding: 11, marginBottom: 8 }}>
 <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
 {R > 1 ? <div style={{ display: "flex", gap: 2 }}>{(function () { var tabs = []; for (var wi = 0; wi < R; wi++) tabs.push(wi); return tabs; })().map(function (wi) { return <div key={wi} onClick={function () { setShowWk(wi); }} style={{ padding: "3px 11px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", background: showWk === wi ? Co.ac + "18" : "transparent", color: showWk === wi ? Co.ac : Co.txD, border: showWk === wi ? "1px solid " + Co.ac + "30" : "1px solid transparent" }}>Wk {wi + 1}</div>; })}</div> : null}
-<div style={{ flex: 1 }} />
+<div className="spacer" />
 <div style={{ display: "flex", gap: 0, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>{sc.perPerson.map(function (f, fi) { return <div key={f.pharmacistId} style={{ display: "flex", alignItems: "center" }}>{fi > 0 ? <div style={{ width: 1, height: 28, background: Co.bdr, margin: "0 8px", flexShrink: 0 }} /> : null}<div style={{ textAlign: "center" }}><div style={{ fontSize: 11, fontWeight: 700, color: f.color, padding: "2px 6px", background: f.color + "15", borderRadius: 4, display: "inline-block" }}>{firstName(f)}</div><div style={{ fontSize: 10, color: Co.txMu, marginTop: 1 }}>{fmtH(f.avgHours)}h/wk</div></div></div>; })}</div>
 </div>
 {activeWk ? <table style={{ width: "100%", borderCollapse: "collapse", background: Co.bg, borderRadius: 6, tableLayout: "fixed" }}><thead><tr>{DAYS.map(function (d) { return <th key={d} style={{ padding: "4px 1px", textAlign: "center", fontWeight: 700, fontSize: 11, borderBottom: "1px solid " + Co.bdr }}>{d}</th>; })}</tr></thead><tbody><tr>{DAYS.map(function (d) {

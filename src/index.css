@@ -105,6 +105,8 @@ body {
   border-radius: 2px;
 }
 
+.spacer { flex: 1; }
+
 .toggle-group {
   display: flex;
   gap: 0;
