@@ -123,6 +123,13 @@ body {
   text-align: center;
 }
 
+.pref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
 .section-heading {
   font-size: 22px;
   font-weight: 700;
