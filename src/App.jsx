@@ -24,6 +24,7 @@ var [pharms, setPharms] = useState([]);
 var [editP, setEditP] = useState(null);
 var [removing, setRemoving] = useState(null);
 var [results, setResults] = useState(null);
+var [failReasons, setFailReasons] = useState([]);
 var [curSched, setCurSched] = useState(null);
 var [curOverrides, setCurOverrides] = useState({});
 var [curScore, setCurScore] = useState(null);
@@ -93,7 +94,8 @@ setTimeout(doGenerateWork, 0);
 function doGenerateWork() {
 if (mode === "improve" && curSched) { var bs = buildSchedFromGrid(); if (bs) setCurScore(scoreTemplate(bs, pharms, store)); }
 var bestRec = null, bestRecG = -1;
-for (var ci = 0; ci < 40; ci++) { var sc = generateSchedule(store, pharms, "business", ci * 17 + 1); var vc = validateCandidate(sc, pharms, store); if (!vc.valid) continue; var ts = scoreTemplate(sc, pharms, store); if (ts.total > bestRecG) { bestRecG = ts.total; bestRec = { name: "Recommended", schedule: sc, score: ts }; } }
+var _failReasonSet = {};
+for (var ci = 0; ci < 40; ci++) { var sc = generateSchedule(store, pharms, "business", ci * 17 + 1); var vc = validateCandidate(sc, pharms, store); if (!vc.valid) { _failReasonSet[vc.reason] = (_failReasonSet[vc.reason] || 0) + 1; continue; } var ts = scoreTemplate(sc, pharms, store); if (ts.total > bestRecG) { bestRecG = ts.total; bestRec = { name: "Recommended", schedule: sc, score: ts }; } }
 var allHonoredPharms = pharms.map(function (p) { var np = { ...p, prefs: { ...p.prefs, needs: {}, fixedDaysOff: [].concat(p.prefs.fixedDaysOff || []), preferredDaysOff: [].concat(p.prefs.preferredDaysOff || []), dayOverrides: Object.assign({}, p.prefs.dayOverrides || {}) } }; if (np.prefs.preferredWeekendDay) np.prefs.needs.weekendPref = true; if (np.prefs.preferEarly) np.prefs.needs.preferEarly = true; if (np.prefs.preferLate) np.prefs.needs.preferLate = true; if (np.prefs.noClopening) np.prefs.needs.noClopening = true; if (np.prefs.noBackToBackLong) np.prefs.needs.noBackToBackLong = true; if (np.prefs.threeDayWeekend) np.prefs.needs.threeDayWeekend = true; if ((np.prefs.preferredDaysOff || []).length > 0) np.prefs.needs.preferredDaysOff = true; if (np.prefs.maxConsecutiveWorkDays && np.prefs.maxConsecutiveWorkDays < 6) np.prefs.needs.maxConsecutiveWorkDays = true; if (np.prefs.consecutiveDaysOff > 1) np.prefs.needs.consecutiveDaysOff = true; return np; });
 var bestAll = null, bestAllG = -1;
 for (var ci2 = 0; ci2 < 40; ci2++) { var sc2 = generateSchedule(store, allHonoredPharms, "min_conflict", ci2 * 13 + 7); var vc2 = validateCandidate(sc2, pharms, store); if (!vc2.valid) continue; var ts2 = scoreTemplate(sc2, pharms, store); if (ts2.total > bestAllG) { bestAllG = ts2.total; bestAll = { name: "All Honored", schedule: sc2, score: ts2 }; } }
@@ -132,9 +134,10 @@ prefCosts.push({ pharmacistId: p.id, pharmacistName: firstName(p), color: p.colo
 });
 });
 }
-setResults(all); setWhatIf(prefCosts); setShowWk(0); setResultPanel(null); setGenerating(false); setStep(5);
+var _topReasons = Object.keys(_failReasonSet).sort(function (a, b) { return _failReasonSet[b] - _failReasonSet[a]; }).slice(0, 3);
+setFailReasons(_topReasons); setResults(all); setWhatIf(prefCosts); setShowWk(0); setResultPanel(null); setGenerating(false); setStep(5);
 }
-function doReset() { setMode(null); setStep(0); setResults(null); setCurSched(null); setCurOverrides({}); setCurScore(null); setPharms([]); setShowWk(0); setResultPanel(null); setWhatIf(null); setFlash({}); setTeamWarning(null); setTipOpen(false); setHistory([]); setStore(freshStore()); }
+function doReset() { setMode(null); setStep(0); setResults(null); setFailReasons([]); setCurSched(null); setCurOverrides({}); setCurScore(null); setPharms([]); setShowWk(0); setResultPanel(null); setWhatIf(null); setFlash({}); setTeamWarning(null); setTipOpen(false); setHistory([]); setStore(freshStore()); }
 var gc = function (g) { return !g ? Co.txD : g.startsWith("A") ? Co.gn : g.startsWith("B") ? Co.ac : g.startsWith("C") ? Co.am : Co.rd; };
 var storeOpHrs = opHrs(store.hours);
 var curOpHrs = mode === "improve" && store._hoursOfOpChanged && store._originalHours ? opHrs(store._originalHours) : storeOpHrs;
@@ -258,6 +261,28 @@ return <div key={item.n} style={{ flex: 1, padding: "8px 8px", background: Co.ca
 })}
 </div>
 </div>
+<div style={{ background: Co.card, borderRadius: 10, boxShadow: shadow.md, padding: "16px 16px", marginBottom: 12 }}>
+<div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Day Ranking</div>
+<div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.6, marginBottom: 8 }}>In Step 2, you rank your store{"'"}s days from busiest to slowest. This tells the engine which days need stronger coverage and influences how the PM is anchored, how overlap shifts are distributed, and how the Peak Strength score is calculated.</div>
+<div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.6 }}>Drag to reorder. Use the tie icon to mark days with similar volume — tied days are treated as equal priority.</div>
+</div>
+<div style={{ background: Co.card, borderRadius: 10, boxShadow: shadow.md, padding: "16px 16px", marginBottom: 12 }}>
+<div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Grid Codes: Standard vs 24hr</div>
+<div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.6, marginBottom: 8 }}>In Improve mode, the grid uses letter codes for shift assignments. These change based on your store type:</div>
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+<div style={{ padding: "8px 10px", background: Co.bg, borderRadius: 6 }}><div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4 }}>Standard Store</div><div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.6 }}><span style={{ ...mono, fontWeight: 700, color: "#5B8DEF" }}>O</span> = Opens{"\n"}<span style={{ ...mono, fontWeight: 700, color: Co.pu }}>C</span> = Closes</div></div>
+<div style={{ padding: "8px 10px", background: Co.bg, borderRadius: 6 }}><div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4 }}>24-Hour Store</div><div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.6 }}><span style={{ ...mono, fontWeight: 700, color: "#5B8DEF" }}>E</span> = Early shift{"\n"}<span style={{ ...mono, fontWeight: 700, color: Co.pu }}>L</span> = Late shift</div></div>
+</div>
+</div>
+<div style={{ background: Co.card, borderRadius: 10, boxShadow: shadow.md, padding: "16px 16px", marginBottom: 12 }}>
+<div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Preference Cost Categories</div>
+<div style={{ fontSize: 11, color: Co.txMu, lineHeight: 1.6, marginBottom: 8 }}>When a preference isn{"'"}t honored in the recommended schedule, the engine calculates how many points it would cost to force it:</div>
+<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+{[{ label: "Free", desc: "Already honored, no cost", color: Co.gn }, { label: "Low cost", desc: "1 point or less — easy to accommodate", color: Co.gn }, { label: "Manageable", desc: "2\u20134 points — noticeable but viable", color: Co.am }, { label: "Expensive", desc: "5+ points — significantly weakens the schedule", color: Co.rd }].map(function (c) {
+return <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: Co.bg, borderRadius: 6 }}><div style={{ width: 8, height: 8, borderRadius: 4, background: c.color, flexShrink: 0 }} /><div style={{ flex: 1 }}><span style={{ fontSize: 11, fontWeight: 600 }}>{c.label}</span><span style={{ fontSize: 11, color: Co.txMu }}> — {c.desc}</span></div></div>;
+})}
+</div>
+</div>
 <div style={{ background: Co.card, borderRadius: 10, boxShadow: shadow.md, padding: "18px 16px", marginBottom: 12 }}>
 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Privacy by Design</div>
 <div style={{ fontSize: 12, color: Co.txMu, lineHeight: 1.5, marginBottom: 12 }}>Zero data stored. Zero data transmitted. Everything runs in your browser and resets when you close the tab.</div>
@@ -278,7 +303,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 </div>
 </div>
 ) : null}
-<div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px 80px" }}>
+<div className="app-container">
 {/* LANDING PAGE */}
 {/* HOME SCREEN — v2 */}
 {mode === null && (
@@ -747,12 +772,13 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 <Card style={{ padding: 20, borderLeft: "3px solid " + Co.rd }}>
 <div style={{ fontSize: 16, fontWeight: 700, color: Co.rd, marginBottom: 8 }}>{"\u26A0"} No Valid Schedule Found</div>
 <div style={{ fontSize: 13, color: Co.txM, lineHeight: 1.6, marginBottom: 12 }}>The engine tested 40 different seed configurations and couldn{"'"}t produce a schedule that meets minimum coverage requirements within the allocated demand hours.</div>
-<div style={{ fontSize: 13, fontWeight: 600, color: Co.tx, marginBottom: 8 }}>Common causes:</div>
+{failReasons.length > 0 ? <div style={{ marginBottom: 12 }}><div style={{ fontSize: 13, fontWeight: 600, color: Co.tx, marginBottom: 6 }}>What went wrong:</div><div style={{ fontSize: 12, color: Co.txMu, lineHeight: 1.7 }}>{failReasons.map(function (r, i) { return <div key={i} style={{ padding: "6px 10px", background: Co.rdS, borderRadius: 6, marginBottom: 4, color: Co.rd, fontWeight: 500 }}>{"\u2022"} {r}</div>; })}</div></div> : null}
+<div style={{ fontSize: 13, fontWeight: 600, color: Co.tx, marginBottom: 8 }}>Things to try:</div>
 <div style={{ fontSize: 12, color: Co.txMu, lineHeight: 1.7 }}>
-{"\u2022"} Too many fixed days off — if everyone has the same day locked, that day can{"'"}t be covered{"\n"}
-{"\u2022"} Demand hours too low for the number of open days — try increasing them{"\n"}
-{"\u2022"} Shift length constraints too tight — min shift length or max shift length may prevent viable assignments{"\n"}
-{"\u2022"} Too few pharmacists for the rotation length — a 5-week rotation with only 1 PM and 1 Staff is very constrained
+{"\u2022"} Reduce fixed days off — if everyone has the same day locked, that day can{"'"}t be covered{"\n"}
+{"\u2022"} Increase demand hours to match or exceed operating hours{"\n"}
+{"\u2022"} Relax shift length constraints — min/max shift length may prevent viable assignments{"\n"}
+{"\u2022"} Add more pharmacists for longer rotation cycles
 </div>
 <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
 <Btn onClick={function () { setStep(3); setResults(null); }} style={{ flex: 1 }}>Edit Team</Btn>
@@ -1080,7 +1106,7 @@ if (!teamWarning) { if (rot === 2 && staffCt > 1) { setTeamWarning("2-week rotat
 setTeamWarning(null); pushHistory(); if (mode === "improve") { initCurSched(); } setStore(function (s) { return { ...s, _originalBudget: s.allocatedHoursPerWeek }; }); setStep(4);
 }} style={{ flex: 1, opacity: canProgress ? 1 : 0.5 }}><span style={{opacity:0.7}}>Next:</span> {mode === "improve" ? "Enter Current" : "Review"} <span style={{opacity:0.7}}>{"\u2192"}</span></Btn>;
 })() : null}
-{step === 4 ? <Btn variant="generate" onClick={doGenerate} disabled={generating} style={{ flex: 1 }}>{generating ? "Generating\u2026" : "Generate"}</Btn> : null}
+{step === 4 ? <Btn variant="generate" onClick={doGenerate} disabled={generating} style={{ flex: 1 }}>{generating ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.6s linear infinite", flexShrink: 0 }} />Generating</span> : "Generate"}</Btn> : null}
 {step === 5 ? <Btn variant="primary" onClick={function () { setStep(6); }} style={{ flex: 2 }}>{"\uD83D\uDCCB"} Full Report</Btn> : null}
 {step === 6 ? <Btn onClick={doReset} style={{ flex: 1 }}>{"\u21A9"} Start Over</Btn> : null}
 </div>
