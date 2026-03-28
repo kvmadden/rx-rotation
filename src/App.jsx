@@ -56,8 +56,12 @@ if (!editP) return;
 var ep = { ...editP };
 if (!ep.name.trim()) ep.name = ep.role === "pm" ? "PM" : ep.role === "ovnt" ? "OVNT RPh " + String.fromCharCode(65 + pharms.filter(function (p) { return p.role === "ovnt"; }).length) : ep.role === "dsp" ? "DSP" + (pharms.filter(function (p) { return p.role === "dsp"; }).length > 0 ? " " + String.fromCharCode(65 + pharms.filter(function (p) { return p.role === "dsp"; }).length) : "") : "Staff RPh " + String.fromCharCode(65 + pharms.filter(function (p) { return p.role === "staff"; }).length);
 var base = +ep.targetHours || 40;
+if (base < 4) base = 4; if (base > 80) base = 80; ep.targetHours = base;
+ep.minShiftLength = Math.max(4, Math.min(16, +ep.minShiftLength || 6));
+ep.maxShiftLength = Math.max(ep.minShiftLength, Math.min(16, +ep.maxShiftLength || 13));
 if (!ep._showRange || (!ep.minHours && !ep.maxHours)) { ep.minHours = base - 8; ep.maxHours = base + 8; }
 if (ep._showRange && ep.minHours && ep.maxHours) { if (+ep.minHours > +ep.maxHours) { var tmp = ep.minHours; ep.minHours = ep.maxHours; ep.maxHours = tmp; } ep.targetHours = Math.round((+ep.minHours + +ep.maxHours) / 2 * 2) / 2; }
+ep.minHours = Math.max(0, +ep.minHours || 0); ep.maxHours = Math.max(ep.minHours, +ep.maxHours || base + 8);
 ep.payPeriodHours = (+ep.targetHours || 40) * 2;
 delete ep._showRange;
 setTeamWarning(null);
@@ -87,17 +91,25 @@ return { weeks: weeks };
 }
 function doGenerate() {
 if (generating) return;
+if (!store.allocatedHoursPerWeek || +store.allocatedHoursPerWeek <= 0) { setTeamWarning("Demand hours must be greater than 0."); return; }
+var openDayCount = DAYS.filter(function (d) { var dh = store.hours[d]; return dh && dh.isOpen; }).length;
+if (openDayCount === 0) { setTeamWarning("At least one day must be open."); return; }
 setGenerating(true);
-setTimeout(doGenerateWork, 0);
-}
-function doGenerateWork() {
+setTimeout(function () {
+try {
+// Phase 1: Score current template if in improve mode
 if (mode === "improve" && curSched) { var bs = buildSchedFromGrid(); if (bs) setCurScore(scoreTemplate(bs, pharms, store)); }
+// Phase 2: Run 40 business seeds
 var bestRec = null, bestRecG = -1;
 for (var ci = 0; ci < 40; ci++) { var sc = generateSchedule(store, pharms, "business", ci * 17 + 1); var vc = validateCandidate(sc, pharms, store); if (!vc.valid) continue; var ts = scoreTemplate(sc, pharms, store); if (ts.total > bestRecG) { bestRecG = ts.total; bestRec = { name: "Recommended", schedule: sc, score: ts }; } }
+setTimeout(function () {
+// Phase 3: Run 40 all-honored seeds
 var allHonoredPharms = pharms.map(function (p) { var np = { ...p, prefs: { ...p.prefs, needs: {}, fixedDaysOff: [].concat(p.prefs.fixedDaysOff || []), preferredDaysOff: [].concat(p.prefs.preferredDaysOff || []), dayOverrides: Object.assign({}, p.prefs.dayOverrides || {}) } }; if (np.prefs.preferredWeekendDay) np.prefs.needs.weekendPref = true; if (np.prefs.preferEarly) np.prefs.needs.preferEarly = true; if (np.prefs.preferLate) np.prefs.needs.preferLate = true; if (np.prefs.noClopening) np.prefs.needs.noClopening = true; if (np.prefs.noBackToBackLong) np.prefs.needs.noBackToBackLong = true; if (np.prefs.threeDayWeekend) np.prefs.needs.threeDayWeekend = true; if ((np.prefs.preferredDaysOff || []).length > 0) np.prefs.needs.preferredDaysOff = true; if (np.prefs.maxConsecutiveWorkDays && np.prefs.maxConsecutiveWorkDays < 6) np.prefs.needs.maxConsecutiveWorkDays = true; if (np.prefs.consecutiveDaysOff > 1) np.prefs.needs.consecutiveDaysOff = true; return np; });
 var bestAll = null, bestAllG = -1;
 for (var ci2 = 0; ci2 < 40; ci2++) { var sc2 = generateSchedule(store, allHonoredPharms, "min_conflict", ci2 * 13 + 7); var vc2 = validateCandidate(sc2, pharms, store); if (!vc2.valid) continue; var ts2 = scoreTemplate(sc2, pharms, store); if (ts2.total > bestAllG) { bestAllG = ts2.total; bestAll = { name: "All Honored", schedule: sc2, score: ts2 }; } }
 var all = []; if (bestRec) all.push(bestRec); if (bestAll && bestRec && Math.abs(bestAll.score.total - bestRec.score.total) >= 2) { all.push(bestAll); }
+setTimeout(function () {
+// Phase 4: Preference impact analysis
 var prefCosts = [];
 if (bestRec) {
 pharms.forEach(function (p) {
@@ -133,6 +145,10 @@ prefCosts.push({ pharmacistId: p.id, pharmacistName: firstName(p), color: p.colo
 });
 }
 setResults(all); setWhatIf(prefCosts); setShowWk(0); setResultPanel(null); setGenerating(false); setStep(5);
+}, 0);
+}, 0);
+} catch (err) { console.error("Schedule generation error:", err); setGenerating(false); setTeamWarning("Generation failed: " + (err.message || "unexpected error") + ". Try adjusting your inputs."); }
+}, 0);
 }
 function doReset() { setMode(null); setStep(0); setResults(null); setCurSched(null); setCurOverrides({}); setCurScore(null); setPharms([]); setShowWk(0); setResultPanel(null); setWhatIf(null); setFlash({}); setTeamWarning(null); setTipOpen(false); setHistory([]); setStore(freshStore()); }
 var gc = function (g) { return !g ? Co.txD : g.startsWith("A") ? Co.gn : g.startsWith("B") ? Co.ac : g.startsWith("C") ? Co.am : Co.rd; };

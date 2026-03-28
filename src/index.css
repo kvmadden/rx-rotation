@@ -252,7 +252,10 @@ body {
   .help-overlay,
   .icon-btn,
   .header-bar,
-  .progress-bar {
+  .progress-bar,
+  .seg-control,
+  .landing-card-improve,
+  .landing-card-scratch {
     display: none !important;
   }
 
@@ -262,7 +265,30 @@ body {
   }
 
   body {
-    background: white;
-    color: black;
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  * {
+    box-shadow: none !important;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+
+  pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+  }
+
+  [role="button"],
+  [role="tab"],
+  [role="checkbox"] {
+    cursor: default !important;
   }
 }
