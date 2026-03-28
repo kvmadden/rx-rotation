@@ -105,6 +105,22 @@ body {
   border-radius: 2px;
 }
 
+.toggle-group {
+  display: flex;
+  gap: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.toggle-group-option {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
 .section-heading {
   font-size: 22px;
   font-weight: 700;
