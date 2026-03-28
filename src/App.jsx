@@ -103,8 +103,8 @@ if (bestRec) {
 pharms.forEach(function (p) {
 if (p.role === "dsp" || p.role === "ovnt") return;
 var pPrefs = [];
-if (p.prefs.preferredWeekendDay) pPrefs.push({ key: "weekendPref", label: firstName(p) + " every other weekend off", forceable: true });
-if (p.prefs.preferredWeekendDay) pPrefs.push({ key: "preferredWeekendDay", label: firstName(p) + " prefers " + p.prefs.preferredWeekendDay + " off specifically", forceable: true });
+if (p.prefs.weekendPref === "every_other_off" && !p.prefs.preferredWeekendDay) pPrefs.push({ key: "weekendPref", label: firstName(p) + " every other weekend off", forceable: true });
+if (p.prefs.preferredWeekendDay) pPrefs.push({ key: "preferredWeekendDay", label: firstName(p) + " prefers " + p.prefs.preferredWeekendDay + " off", forceable: true });
 if (p.prefs.preferEarly) pPrefs.push({ key: "preferEarly", label: firstName(p) + " prefers opening", forceable: true });
 if (p.prefs.preferLate) pPrefs.push({ key: "preferLate", label: firstName(p) + " prefers closing", forceable: true });
 if (p.prefs.noClopening) pPrefs.push({ key: "noClopening", label: firstName(p) + " no close-to-open", forceable: true });
