@@ -23,9 +23,7 @@ DAYS.forEach(function (d) { var dh = store.hours[d]; dayHrsMap[d] = (dh && dh.is
 var openDays = DAYS.filter(function (d) { return dayHrsMap[d] > 0; });
 var ranking = store.dayRanking || openDays;
 var pm = dayStaff.find(function (p) { return p.role === "pm"; });
-var avgDayHrs = 0, openDayCount = 0;
-openDays.forEach(function (d) { avgDayHrs += dayHrsMap[d]; openDayCount++; });
-avgDayHrs = openDayCount > 0 ? avgDayHrs / openDayCount : 12;
+var openDayCount = openDays.length;
 var weeks = [];
 for (var w = 0; w < R; w++) {
 var wk = {};
@@ -459,8 +457,7 @@ var demandHrs = +store.allocatedHoursPerWeek || 0;
 var budgetPct = demandHrs > 0 ? Math.round(actualPerWk / demandHrs * 100) : 100;
 var weeklyGap = Math.max(0, demandHrs - actualPerWk);
 var gapAction = weeklyGap < 0.5 ? "none" : weeklyGap < 4 ? "extend" : "dsp";
-var budgetDeviation = Math.abs(budgetPct - 100);
-var budgetScore = budgetDeviation <= 0.5 ? 100 : budgetDeviation <= 1 ? 97 : budgetDeviation <= 3 ? 92 : budgetDeviation <= 5 ? 85 : Math.max(50, 100 - budgetDeviation * 3);
+var budgetScore = budgetPct >= 100 ? 100 : budgetPct >= 99 ? 97 : budgetPct >= 97 ? 92 : budgetPct >= 95 ? 85 : Math.max(50, 100 - (100 - budgetPct) * 3);
 var peakHits = 0, peakTotal = 0;
 var hasOverlapBudget = (+store.allocatedHoursPerWeek || 0) > opHrs(store.hours);
 var dayRankingForPeak = store.dayRanking || DAYS.filter(function (d) { var dh = store.hours[d]; return dh && dh.isOpen; });
@@ -477,36 +474,34 @@ peakHits += wt * Math.min(baseCredit + pmBonus, 0.95);
 }
 }); } });
 var peakPct = peakTotal > 0 ? Math.round(peakHits / peakTotal * 100) : 100;
-var sustainScore = 100;
-if (dayStaff.length >= 1) {
-var deviations = [];
-dayStaff.forEach(function (p) {
-var totalH = 0;
-for (var w = 0; w < R; w++) { DAYS.forEach(function (d) { (sched.weeks[w][d] || []).forEach(function (a) { if (a.pharmacistId === p.id) totalH += (t2m(a.end) - t2m(a.start)) / 60; }); }); }
-var avgPerWkP = R > 0 ? totalH / R : 0;
-var target = p.targetHours || 40;
-var devPct = target > 0 ? Math.abs(avgPerWkP - target) / target * 100 : 0;
-deviations.push(devPct);
-});
-var avgDev = deviations.reduce(function (a, d) { return a + d; }, 0) / Math.max(deviations.length, 1);
-var maxDev = Math.max.apply(null, deviations);
-// Blend average and worst-case: penalize both chronic and extreme deviation
-sustainScore = Math.max(0, Math.round(100 - avgDev * 2.5 - Math.max(0, maxDev - 10) * 1.5));
-}
+var burdenScores = []; dayStaff.forEach(function (p) { var h = 0; for (var w = 0; w < R; w++) { DAYS.forEach(function (d) { (sched.weeks[w][d] || []).forEach(function (a) { if (a.pharmacistId === p.id) h += (t2m(a.end) - t2m(a.start)) / 60; }); }); } burdenScores.push(h); });
+var sustainScore = 100; if (burdenScores.length >= 2) { var mx = Math.max.apply(null, burdenScores), mn = Math.min.apply(null, burdenScores); if (mx > 0) sustainScore = Math.max(0, Math.round(100 - (mx - mn) / mx * 100)); }
 var fairnessScore = 100;
 if (dayStaff.length >= 2) {
 var fairPenalty = 0;
 var staffOnly = dayStaff.filter(function (p) { return p.role !== "pm"; });
 if (staffOnly.length >= 2) {
-var staffWknd = staffOnly.map(function (p) { var wd = 0; sched.weeks.forEach(function (wk) { ["Sat", "Sun"].forEach(function (d) { if ((wk[d] || []).some(function (a) { return a.pharmacistId === p.id; })) wd++; }); }); return wd; });
+// Weekend fairness: only compare staff without weekend day preferences
+var wkndNeutral = staffOnly.filter(function (p) { return !p.prefs.preferredWeekendDay; });
+if (wkndNeutral.length >= 2) {
+var staffWknd = wkndNeutral.map(function (p) { var wd = 0; sched.weeks.forEach(function (wk) { ["Sat", "Sun"].forEach(function (d) { if ((wk[d] || []).some(function (a) { return a.pharmacistId === p.id; })) wd++; }); }); return wd; });
 var wkndMax = Math.max.apply(null, staffWknd), wkndMin = Math.min.apply(null, staffWknd);
 if (wkndMax - wkndMin > R) fairPenalty += 15; else if (wkndMax - wkndMin > 1) fairPenalty += 5;
-var staffOpens = staffOnly.map(function (p) { var ct = 0; sched.weeks.forEach(function (wk) { DAYS.forEach(function (d) { (wk[d] || []).forEach(function (a) { if (a.pharmacistId === p.id) { var dh = store.hours[d]; if (dh && t2m(a.start) <= t2m(dh.open) + 30) ct++; } }); }); }); return ct; });
-var staffCloses = staffOnly.map(function (p) { var ct = 0; sched.weeks.forEach(function (wk) { DAYS.forEach(function (d) { (wk[d] || []).forEach(function (a) { if (a.pharmacistId === p.id) { var dh = store.hours[d]; if (dh && t2m(a.end) >= t2m(dh.close) - 30) ct++; } }); }); }); return ct; });
+}
+// Opens fairness: only compare staff without early preference
+var openNeutral = staffOnly.filter(function (p) { return !p.prefs.preferEarly; });
+if (openNeutral.length >= 2) {
+var staffOpens = openNeutral.map(function (p) { var ct = 0; sched.weeks.forEach(function (wk) { DAYS.forEach(function (d) { (wk[d] || []).forEach(function (a) { if (a.pharmacistId === p.id) { var dh = store.hours[d]; if (dh && t2m(a.start) <= t2m(dh.open) + 30) ct++; } }); }); }); return ct; });
 var openMax = Math.max.apply(null, staffOpens), openMin = Math.min.apply(null, staffOpens);
-var closeMax = Math.max.apply(null, staffCloses), closeMin = Math.min.apply(null, staffCloses);
 if (openMax - openMin > R * 2) fairPenalty += 10;
+}
+// Closes fairness: only compare staff without late preference
+var closeNeutral = staffOnly.filter(function (p) { return !p.prefs.preferLate; });
+if (closeNeutral.length >= 2) {
+var staffCloses = closeNeutral.map(function (p) { var ct = 0; sched.weeks.forEach(function (wk) { DAYS.forEach(function (d) { (wk[d] || []).forEach(function (a) { if (a.pharmacistId === p.id) { var dh = store.hours[d]; if (dh && t2m(a.end) >= t2m(dh.close) - 30) ct++; } }); }); }); return ct; });
+var closeMax = Math.max.apply(null, staffCloses), closeMin = Math.min.apply(null, staffCloses);
 if (closeMax - closeMin > R * 2) fairPenalty += 10;
+}
 }
 var pmF = dayStaff.find(function (p) { return p.role === "pm"; });
 if (pmF && staffOnly.length >= 1) {
@@ -561,7 +556,7 @@ if (p.minHours || p.maxHours) { sched.weeks.forEach(function (wk2, wi2) { var we
 if (R >= 2) { var wkHrs = []; sched.weeks.forEach(function (wk2) { var wh = 0; DAYS.forEach(function (d2) { (wk2[d2] || []).forEach(function (a2) { if (a2.pharmacistId === p.id) wh += (t2m(a2.end) - t2m(a2.start)) / 60; }); }); wkHrs.push(wh); }); var heaviest = Math.max.apply(null, wkHrs); var lightest = Math.min.apply(null, wkHrs.filter(function (h) { return h > 0; }).concat([heaviest])); var spread = heaviest - lightest; if (spread > 16) tradeoffs.push({ msg: firstName(p) + " has " + fmtH(spread) + "h spread (" + fmtH(lightest) + "h \u2013 " + fmtH(heaviest) + "h)", level: "want", prefKey: "weeklySpread" }); }
 if (p.prefs.preferEarly && closeCt > openCt) tradeoffs.push({ msg: firstName(p) + " prefers opening but closes " + closeCt + "x this rotation", level: (p.prefs.needs || {}).preferEarly ? "need" : "want", prefKey: "preferEarly" });
 if (p.prefs.preferLate && openCt > closeCt) tradeoffs.push({ msg: firstName(p) + " prefers closing but opens " + openCt + "x this rotation", level: (p.prefs.needs || {}).preferLate ? "need" : "want", prefKey: "preferLate" });
-if (p.prefs.weekendPref === "every_other_off" && weekendDays > R) tradeoffs.push({ msg: firstName(p) + " requested every other weekend off but works " + weekendDays + " weekend days across " + R + " weeks", level: (p.prefs.needs || {}).weekendPref ? "need" : "want", prefKey: "weekendPref" });
+if (p.prefs.weekendPref === "every_other_off" && !p.prefs.preferredWeekendDay && weekendDays > R) tradeoffs.push({ msg: firstName(p) + " requested every other weekend off but works " + weekendDays + " weekend days across " + R + " weeks", level: (p.prefs.needs || {}).weekendPref ? "need" : "want", prefKey: "weekendPref" });
 if (prefDayViolations.length > 0) tradeoffs.push({ msg: firstName(p) + " prefers " + prefDayViolations.join(", ") + " off but is scheduled to work", level: "want", prefKey: "preferredDaysOff" });
 if (clopen > 0) tradeoffs.push({ msg: firstName(p) + " has " + clopen + " close-to-open" + (clopen > 1 ? "s" : ""), level: (p.prefs.needs || {}).noClopening ? "need" : "want", prefKey: "noClopening" });
 if (p.prefs.preferredWeekendDay && wkndDayViolations.length > 0) tradeoffs.push({ msg: firstName(p) + " prefers " + p.prefs.preferredWeekendDay + " off but works it", level: (p.prefs.needs || {}).weekendPref ? "need" : "want", prefKey: "preferredWeekendDay" });
@@ -581,19 +576,16 @@ if (p.prefs.consecutiveDaysOff > 1) { var minOffMet = false; var allDaysFlat = [
 var needCount = tradeoffs.filter(function (t) { return t.level === "need"; }).length;
 var wantCount = tradeoffs.length - needCount;
 var penaltyPerNeed = 20;
-// Scale want penalty: larger teams have more total preferences so each miss matters less
-var teamScale = Math.max(1, dayStaff.length - 1);
-var penaltyPerWant = Math.max(5, Math.round(15 * 2 / Math.max(R, 2) / teamScale));
+var penaltyPerWant = Math.max(8, Math.round(15 * 2 / Math.max(R, 2)));
 var totalPenalty = needCount * penaltyPerNeed + wantCount * penaltyPerWant;
 return { pharmacistId: p.id, name: p.name, color: p.color, overall: tradeoffs.length === 0 ? 100 : Math.max(15, 100 - totalPenalty), tradeoffs: tradeoffs, openCt: openCt, closeCt: closeCt, totalShifts: totalShifts, avgHours: avgH, weekendDays: weekendDays };
 });
 var prefAvg = perPerson.length > 0 ? Math.round(perPerson.reduce(function (a, f) { return a + f.overall; }, 0) / perPerson.length) : 100;
 var total = Math.round(coveragePct * 0.30 + budgetScore * 0.20 + peakPct * 0.15 + sustainScore * 0.10 + prefAvg * 0.10 + fairnessScore * 0.15);
 var letter = total >= 97 ? "A+" : total >= 94 ? "A" : total >= 90 ? "A-" : total >= 87 ? "B+" : total >= 84 ? "B" : total >= 80 ? "B-" : total >= 77 ? "C+" : total >= 74 ? "C" : total >= 70 ? "C-" : total >= 67 ? "D+" : total >= 64 ? "D" : total >= 60 ? "D-" : "F";
-var weeklyExcess = Math.max(0, actualPerWk - demandHrs);
-var strengths = []; if (coveragePct === 100) strengths.push("Full coverage every open hour"); if (weeklyGap < 0.5 && weeklyExcess < 1) strengths.push("Demand hours on target"); if (peakPct >= 80) { if (dayStaff.length >= 2 && (+store.allocatedHoursPerWeek || 0) > opHrs(store.hours)) strengths.push("Strong peak hour overlap"); else strengths.push(store.pmAnchorBusiest ? (hasOverlapBudget ? "PM opens and sets tone on highest volume day" : "PM anchored on highest volume day") : "Busiest days well-staffed"); } if (sustainScore >= 90) strengths.push("Everyone near their target hours"); if (prefAvg >= 85) strengths.push("Most preferences satisfied"); if (fairnessScore >= 90) strengths.push("Weekends, opens, and closes distributed fairly");
+var strengths = []; if (coveragePct === 100) strengths.push("Full coverage every open hour"); if (weeklyGap < 0.5) strengths.push("100% demand hours utilized"); if (peakPct >= 80) { if (dayStaff.length >= 2 && (+store.allocatedHoursPerWeek || 0) > opHrs(store.hours)) strengths.push("Strong peak hour overlap"); else strengths.push(store.pmAnchorBusiest ? (hasOverlapBudget ? "PM opens and sets tone on highest volume day" : "PM anchored on highest volume day") : "Busiest days well-staffed"); } if (sustainScore >= 90) strengths.push("Burden evenly distributed"); if (prefAvg >= 85) strengths.push("Most preferences satisfied"); if (fairnessScore >= 90) strengths.push("Weekends, opens, and closes distributed fairly");
 var tags = [], needCt = 0, wantCt = 0; perPerson.forEach(function (pp) { (pp.tradeoffs || []).forEach(function (t) { if (t.level === "need") needCt++; else wantCt++; }); });
-if (sustainScore < 60) tags.push("Burden concentrated"); if (needCt > 0 && total >= 70) tags.push("Strong but fragile"); if (needCt === 0 && wantCt === 0 && total >= 80) tags.push("Low-drama option"); if (wantCt >= Math.max(4, R + 1)) tags.push("Socially costly"); if (sustainScore >= 80 && total >= 75) tags.push("Operationally clean"); if (gapAction === "dsp") tags.push("DSP needed (" + fmtH(weeklyGap) + "h)"); if (weeklyExcess >= 2) tags.push("Over budget +" + fmtH(weeklyExcess) + "h/wk"); if (tags.length === 0 && total >= 80) tags.push("Balanced");
+if (sustainScore < 60) tags.push("Burden concentrated"); if (needCt > 0 && total >= 70) tags.push("Strong but fragile"); if (needCt === 0 && wantCt === 0 && total >= 80) tags.push("Low-drama option"); if (wantCt >= Math.max(4, R + 1)) tags.push("Socially costly"); if (sustainScore >= 80 && total >= 75) tags.push("Operationally clean"); if (gapAction === "dsp") tags.push("DSP needed (" + fmtH(weeklyGap) + "h)"); if (tags.length === 0 && total >= 80) tags.push("Balanced");
 return { grade: letter, total: total, tags: tags, weeklyGap: weeklyGap, gapAction: gapAction, components: { coverage: coveragePct, budget: budgetScore, peak: peakPct, sustainability: sustainScore, preferences: prefAvg, fairness: fairnessScore }, perPerson: perPerson, strengths: strengths };
 }
 export function genSummaryText(store, sc, pharms, r, detailed) {
