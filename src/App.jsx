@@ -16,7 +16,7 @@ if (mq.addEventListener) mq.addEventListener("change", handler);
 else if (mq.addListener) mq.addListener(handler);
 return function () { if (mq.removeEventListener) mq.removeEventListener("change", handler); else if (mq.removeListener) mq.removeListener(handler); };
 }, []);
-setTheme(dark);
+useEffect(function () { setTheme(dark); });
 var [mode, setMode] = useState(null);
 var [step, setStep] = useState(0);
 var [store, setStore] = useState(freshStore);
@@ -40,6 +40,7 @@ var [tipOpen, setTipOpen] = useState(false);
 var [history, setHistory] = useState([]);
 var [copied, setCopied] = useState(false);
 var flashTimers = useRef({});
+var genTimers = useRef([]);
 function flashFor(key, duration) {
   if (flashTimers.current[key]) clearTimeout(flashTimers.current[key]);
   setFlash(function (f) { return { ...f, [key]: true }; });
@@ -86,31 +87,32 @@ if (!curSched) return null; var R = store.rotationWeeks || 2; var weeks = [];
 for (var w = 0; w < R; w++) { var wk = {}; DAYS.forEach(function (d) { var dh = store.hours[d]; if (!dh || !dh.isOpen) { wk[d] = []; return; } var segS = t2m(dh.open), segE = t2m(dh.close);
 var assignedP = pharms.filter(function (p) { return curSched[w + "-" + p.id + "-" + d]; }); var assigns = [];
 var hasW = assignedP.some(function (p) { return curSched[w + "-" + p.id + "-" + d] === "W"; }); var ovlKey = "ovl-" + w + "-" + d;
-if (hasW || assignedP.length >= 3 || curOverrides[ovlKey]) { assignedP.forEach(function (p) { var startKey = "os-" + w + "-" + d + "-" + p.id; var endKey = "oe-" + w + "-" + d + "-" + p.id; var pS = curOverrides[startKey] ? t2m(curOverrides[startKey]) : segS; var pE = curOverrides[endKey] ? t2m(curOverrides[endKey]) : segE; pE = Math.min(pE, pS + (p.maxShiftLength || 13) * 60); assigns.push({ pharmacistId: p.id, start: m2t(pS), end: m2t(pE) }); }); }
-else { var ovrKey = w + "-" + d; var owC = curOverrides[ovrKey] ? t2m(curOverrides[ovrKey]) : snap30(segS + Math.round((segE - segS) * 0.55)); assignedP.forEach(function (p) { var role = curSched[w + "-" + p.id + "-" + d] || ""; var sS, sEn; if (role === "O") { sS = segS; sEn = snap30(owC + 60); } else if (role === "C") { sS = snap30(owC - 60); sEn = segE; } else { sS = segS; sEn = segE; } sEn = Math.min(sEn, sS + (p.maxShiftLength || 13) * 60); assigns.push({ pharmacistId: p.id, start: m2t(sS), end: m2t(sEn) }); }); }
+if (hasW || assignedP.length >= 3 || curOverrides[ovlKey]) { assignedP.forEach(function (p) { var startKey = "os-" + w + "-" + d + "-" + p.id; var endKey = "oe-" + w + "-" + d + "-" + p.id; var pS = curOverrides[startKey] ? t2m(curOverrides[startKey]) : segS; var pE = curOverrides[endKey] ? t2m(curOverrides[endKey]) : segE; pE = Math.min(pE, pS + (p.maxShiftLength != null ? p.maxShiftLength : 13) * 60); assigns.push({ pharmacistId: p.id, start: m2t(pS), end: m2t(pE) }); }); }
+else { var ovrKey = w + "-" + d; var owC = curOverrides[ovrKey] ? t2m(curOverrides[ovrKey]) : snap30(segS + Math.round((segE - segS) * 0.55)); assignedP.forEach(function (p) { var role = curSched[w + "-" + p.id + "-" + d] || ""; var sS, sEn; if (role === "O") { sS = segS; sEn = snap30(owC + 60); } else if (role === "C") { sS = Math.max(segS, snap30(owC - 60)); sEn = segE; } else { sS = segS; sEn = segE; } sEn = Math.min(sEn, sS + (p.maxShiftLength != null ? p.maxShiftLength : 13) * 60); assigns.push({ pharmacistId: p.id, start: m2t(sS), end: m2t(sEn) }); }); }
 wk[d] = assigns; }); weeks.push(wk); }
 return { weeks: weeks };
 }
 function doGenerate() {
 if (generating) return;
+genTimers.current.forEach(clearTimeout); genTimers.current = [];
 if (!store.allocatedHoursPerWeek || +store.allocatedHoursPerWeek <= 0) { setTeamWarning("Demand hours must be greater than 0."); return; }
 var openDayCount = DAYS.filter(function (d) { var dh = store.hours[d]; return dh && dh.isOpen; }).length;
 if (openDayCount === 0) { setTeamWarning("At least one day must be open."); return; }
 setGenerating(true);
-setTimeout(function () {
+genTimers.current.push(setTimeout(function () {
 try {
 // Phase 1: Score current template if in improve mode
 if (mode === "improve" && curSched) { var bs = buildSchedFromGrid(); if (bs) setCurScore(scoreTemplate(bs, pharms, store)); }
 // Phase 2: Run 40 business seeds
 var bestRec = null, bestRecG = -1;
 for (var ci = 0; ci < 40; ci++) { var sc = generateSchedule(store, pharms, "business", ci * 17 + 1); var vc = validateCandidate(sc, pharms, store); if (!vc.valid) continue; var ts = scoreTemplate(sc, pharms, store); if (ts.total > bestRecG) { bestRecG = ts.total; bestRec = { name: "Recommended", schedule: sc, score: ts }; } }
-setTimeout(function () {
+genTimers.current.push(setTimeout(function () { try {
 // Phase 3: Run 40 all-honored seeds
 var allHonoredPharms = pharms.map(function (p) { var np = { ...p, prefs: { ...p.prefs, needs: {}, fixedDaysOff: [].concat(p.prefs.fixedDaysOff || []), preferredDaysOff: [].concat(p.prefs.preferredDaysOff || []), dayOverrides: Object.assign({}, p.prefs.dayOverrides || {}) } }; if (np.prefs.preferredWeekendDay) np.prefs.needs.weekendPref = true; if (np.prefs.preferEarly) np.prefs.needs.preferEarly = true; if (np.prefs.preferLate) np.prefs.needs.preferLate = true; if (np.prefs.noClopening) np.prefs.needs.noClopening = true; if (np.prefs.noBackToBackLong) np.prefs.needs.noBackToBackLong = true; if (np.prefs.threeDayWeekend) np.prefs.needs.threeDayWeekend = true; if ((np.prefs.preferredDaysOff || []).length > 0) np.prefs.needs.preferredDaysOff = true; if (np.prefs.maxConsecutiveWorkDays && np.prefs.maxConsecutiveWorkDays < 6) np.prefs.needs.maxConsecutiveWorkDays = true; if (np.prefs.consecutiveDaysOff > 1) np.prefs.needs.consecutiveDaysOff = true; return np; });
 var bestAll = null, bestAllG = -1;
-for (var ci2 = 0; ci2 < 40; ci2++) { var sc2 = generateSchedule(store, allHonoredPharms, "min_conflict", ci2 * 13 + 7); var vc2 = validateCandidate(sc2, pharms, store); if (!vc2.valid) continue; var ts2 = scoreTemplate(sc2, pharms, store); if (ts2.total > bestAllG) { bestAllG = ts2.total; bestAll = { name: "All Honored", schedule: sc2, score: ts2 }; } }
+for (var ci2 = 0; ci2 < 40; ci2++) { var sc2 = generateSchedule(store, allHonoredPharms, "min_conflict", ci2 * 13 + 7); var vc2 = validateCandidate(sc2, allHonoredPharms, store); if (!vc2.valid) continue; var ts2 = scoreTemplate(sc2, pharms, store); if (ts2.total > bestAllG) { bestAllG = ts2.total; bestAll = { name: "All Honored", schedule: sc2, score: ts2 }; } }
 var all = []; if (bestRec) all.push(bestRec); if (bestAll && bestRec && Math.abs(bestAll.score.total - bestRec.score.total) >= 2) { all.push(bestAll); }
-setTimeout(function () {
+genTimers.current.push(setTimeout(function () { try {
 // Phase 4: Preference impact analysis
 var prefCosts = [];
 if (bestRec) {
@@ -147,12 +149,14 @@ prefCosts.push({ pharmacistId: p.id, pharmacistName: firstName(p), color: p.colo
 });
 }
 setResults(all); setWhatIf(prefCosts); setShowWk(0); setResultPanel(null); setGenerating(false); setStep(5); window.scrollTo({ top: 0, behavior: "smooth" });
-}, 0);
-}, 0);
+} catch (err) { console.error("Schedule generation error (phase 4):", err); setGenerating(false); setTeamWarning("Generation failed: " + (err.message || "unexpected error") + ". Try adjusting your inputs."); }
+}, 0));
+} catch (err) { console.error("Schedule generation error (phase 3):", err); setGenerating(false); setTeamWarning("Generation failed: " + (err.message || "unexpected error") + ". Try adjusting your inputs."); }
+}, 0));
 } catch (err) { console.error("Schedule generation error:", err); setGenerating(false); setTeamWarning("Generation failed: " + (err.message || "unexpected error") + ". Try adjusting your inputs."); }
-}, 0);
+}, 0));
 }
-function doReset() { setMode(null); setStep(0); setResults(null); setCurSched(null); setCurOverrides({}); setCurScore(null); setPharms([]); setShowWk(0); setResultPanel(null); setWhatIf(null); setFlash({}); setTeamWarning(null); setTipOpen(false); setHistory([]); setStore(freshStore()); }
+function doReset() { genTimers.current.forEach(clearTimeout); genTimers.current = []; setMode(null); setStep(0); setResults(null); setCurSched(null); setCurOverrides({}); setCurScore(null); setPharms([]); setShowWk(0); setResultPanel(null); setWhatIf(null); setFlash({}); setTeamWarning(null); setTipOpen(false); setHistory([]); setStore(freshStore()); }
 var gc = function (g) { return !g ? Co.txD : g.startsWith("A") ? Co.gn : g.startsWith("B") ? Co.ac : g.startsWith("C") ? Co.am : Co.rd; };
 var storeOpHrs = opHrs(store.hours);
 var curOpHrs = mode === "improve" && store._hoursOfOpChanged && store._originalHours ? opHrs(store._originalHours) : storeOpHrs;
@@ -462,7 +466,7 @@ return <div key={item.l} style={{ display: "flex", alignItems: "center", gap: 8,
 {DAYS.map(function (d) {
 var isLocked = mode === "improve" && store._hoursOfOpChanged;
 var srcHours = isLocked && store._originalHours ? store._originalHours : store.hours;
-var dh = srcHours[d]; var dayHrs = dh.isOpen ? ((t2m(dh.close) - t2m(dh.open)) / 60) : 0;
+var dh = srcHours[d]; if (!dh) return null; var dayHrs = dh.isOpen ? ((t2m(dh.close) - t2m(dh.open)) / 60) : 0;
 return <div key={d} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 0", borderBottom: "1px solid " + Co.bdrL, opacity: isLocked ? 0.6 : 1 }}>
 <div style={{ width: 28, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{d}</div>
 {isLocked ? null : (d === "Sun" ? <Tog small value={dh.isOpen} onChange={function (v) { setStore(function (s) { var h = { ...s.hours }; h[d] = { ...h[d], isOpen: v }; var r = (s.dayRanking || DAYS).slice(); var t = (s.dayTies || []).slice(); if (!v) { var ri = r.indexOf(d); if (ri >= 0) { t = t.filter(function (ti) { return ti !== ri && ti !== ri - 1; }).map(function (ti) { return ti > ri ? ti - 1 : ti; }); r.splice(ri, 1); } } else if (!r.includes(d)) { r.push(d); } return { ...s, hours: h, dayRanking: r, dayTies: t }; }); }} /> : null)}
@@ -718,7 +722,7 @@ return <Card key={wi} style={{ padding: store.rotationWeeks >= 4 ? 8 : 12 }}>
 return [<div key={p.id + "-n"} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "0 2px" }}><span style={{ fontSize: 11, fontWeight: 700, color: p.color, padding: "3px 6px", background: p.color + "18", border: "1px solid " + p.color + "30", borderRadius: 4, whiteSpace: "nowrap" }}>{p.role === "pm" ? "PM" : firstName(p)}</span></div>].concat(DAYS.map(function (d) {
 var dh = store.hours[d];
 if (!dh || !dh.isOpen) return <div key={p.id + d} style={{ textAlign: "center", fontSize: 11, color: Co.txD, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44 }}>{"\u2013"}</div>;
-var k = wi + "-" + p.id + "-" + d; var val = curSched[k] || "";
+var k = wi + "-" + p.id + "-" + d; var val = (curSched && curSched[k]) || "";
 var bg = val === "O" ? "rgba(91,141,239,0.12)" : val === "C" ? Co.puS : val === "F" ? Co.tlS : val === "W" ? Co.amS : Co.bg;
 var clr = val === "O" ? "#5B8DEF" : val === "C" ? Co.pu : val === "F" ? Co.tl : val === "W" ? Co.am : Co.txD;
 var label = val === "O" ? (store.is24hr ? "E" : "O") : val === "C" ? (store.is24hr ? "L" : "C") : val === "F" ? "F" : val === "W" ? "W" : "";
@@ -727,7 +731,7 @@ return <div key={p.id + d} role="button" tabIndex={0} aria-label={(p.role === "p
 })}
 </div>
 {(function () {
-var anyMulti = DAYS.some(function (d) { return pharms.filter(function (p) { return curSched[wi + "-" + p.id + "-" + d]; }).length >= 2; });
+var anyMulti = curSched && DAYS.some(function (d) { return pharms.filter(function (p) { return curSched[wi + "-" + p.id + "-" + d]; }).length >= 2; });
 if (!anyMulti) return null;
 var isOpen = curOverrides["*show*" + wi];
 return <div style={{ marginTop: 8 }}>
@@ -781,7 +785,7 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 <Card style={{ padding: 20, borderLeft: "3px solid " + Co.rd }}>
 <div style={{ fontSize: 16, fontWeight: 700, color: Co.rd, marginBottom: 8 }}>{"\u26A0"} No Valid Schedule Found</div>
 <div style={{ fontSize: 13, color: Co.txM, lineHeight: 1.6, marginBottom: 12 }}>The engine tested 40 different seed configurations and couldn{"'"}t produce a schedule that meets minimum coverage requirements within the allocated demand hours.</div>
-{failReasons.length > 0 ? <div style={{ marginBottom: 12 }}><div style={{ fontSize: 13, fontWeight: 600, color: Co.tx, marginBottom: 6 }}>What went wrong:</div><div style={{ fontSize: 12, color: Co.txMu, lineHeight: 1.7 }}>{failReasons.map(function (r, i) { return <div key={i} style={{ padding: "6px 10px", background: Co.rdS, borderRadius: 6, marginBottom: 4, color: Co.rd, fontWeight: 500 }}>{"\u2022"} {r}</div>; })}</div></div> : null}
+{failReasons.length > 0 ? <div style={{ marginBottom: 12 }}><div style={{ fontSize: 13, fontWeight: 600, color: Co.tx, marginBottom: 6 }}>What went wrong:</div><div style={{ fontSize: 12, color: Co.txMu, lineHeight: 1.7 }}>{failReasons.map(function (r, i) { return <div key={r + i} style={{ padding: "6px 10px", background: Co.rdS, borderRadius: 6, marginBottom: 4, color: Co.rd, fontWeight: 500 }}>{"\u2022"} {r}</div>; })}</div></div> : null}
 <div style={{ fontSize: 13, fontWeight: 600, color: Co.tx, marginBottom: 8 }}>Things to try:</div>
 <div style={{ fontSize: 12, color: Co.txMu, lineHeight: 1.7 }}>
 {"\u2022"} Reduce fixed days off — if everyone has the same day locked, that day can{"'"}t be covered{"\n"}
@@ -799,7 +803,7 @@ return <div key={d} style={{ padding: "8px 0", borderBottom: "1px solid " + Co.b
 {step === 5 && results && results.length > 0 && (function () {
 var hero = results[0]; var sc = hero.score; var gClr = gc(sc.grade);
 var allHonored = results.length > 1 ? results[1] : null;
-var R = hero.schedule ? hero.schedule.weeks.length : 2;
+var R = hero.schedule && hero.schedule.weeks ? hero.schedule.weeks.length : 2;
 var narrative = mode === "improve" && curScore ? genNarrative(curScore, sc, pharms, R) : [];
 if (store._originalBudget && store._originalBudget !== store.allocatedHoursPerWeek) {
 var bdiff = (+store.allocatedHoursPerWeek || 0) - (+store._originalBudget || 0);
@@ -848,7 +852,7 @@ return <div style={{ padding: "10px 14px", background: Co.amS, borderRadius: 10,
 {activeWk ? <table style={{ width: "100%", borderCollapse: "collapse", background: Co.bg, borderRadius: 6, tableLayout: "fixed" }}><thead><tr>{DAYS.map(function (d) { return <th key={d} style={{ padding: "4px 1px", textAlign: "center", fontWeight: 700, fontSize: 11, borderBottom: "1px solid " + Co.bdr }}>{d}</th>; })}</tr></thead><tbody><tr>{DAYS.map(function (d) {
 var allA = activeWk[d] || []; var dayA = allA.filter(function (a) { return a.pharmacistId !== "dsp-auto" && a.pharmacistId !== "ovnt-auto"; }); var dayOvnt = allA.filter(function (a) { return a.pharmacistId === "ovnt-auto"; });
 return <td key={d} style={{ padding: 2, verticalAlign: "top", borderLeft: "1px solid " + Co.bdrL }}>
-{dayA.map(function (a, i) { var p = pharms.find(function (x) { return x.id === a.pharmacistId; }); var nm = p ? (p.role === "pm" ? "PM" : firstName(p)) : "?"; var clr = p ? p.color : Co.ac; return <div key={i} style={{ padding: "3px 3px", marginBottom: 1, borderRadius: 2, borderLeft: "2px solid " + clr, fontSize: 11 }}><div style={{ fontWeight: 700, color: clr, fontSize: 11 }}>{nm}</div><div style={{ ...mono, fontSize: 11, color: Co.txMu }}>{tL(a.start).replace(":00", "")}-{tL(a.end).replace(":00", "")}</div></div>; })}
+{dayA.map(function (a, i) { var p = pharms.find(function (x) { return x.id === a.pharmacistId; }); var nm = p ? (p.role === "pm" ? "PM" : firstName(p)) : "?"; var clr = p ? p.color : Co.ac; return <div key={a.pharmacistId + "-" + a.start} style={{ padding: "3px 3px", marginBottom: 1, borderRadius: 2, borderLeft: "2px solid " + clr, fontSize: 11 }}><div style={{ fontWeight: 700, color: clr, fontSize: 11 }}>{nm}</div><div style={{ ...mono, fontSize: 11, color: Co.txMu }}>{tL(a.start).replace(":00", "")}-{tL(a.end).replace(":00", "")}</div></div>; })}
 {dayOvnt.map(function (a, i) { return <div key={"ov" + i} style={{ padding: "1px 2px", marginTop: 1, borderRadius: 2, borderLeft: "2px solid " + Co.pu, fontSize: 11, background: Co.puS }}><div style={{ fontWeight: 700, color: Co.pu, fontSize: 11 }}>OV</div></div>; })}
 {dayA.length === 0 && dayOvnt.length === 0 ? <div style={{ fontSize: 11, color: Co.txD, textAlign: "center" }}>{"\u2013"}</div> : null}
 </td>;

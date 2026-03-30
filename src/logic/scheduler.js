@@ -170,6 +170,7 @@ if (alt4.length > 0) { assignMap[midDay] = assignMap[midDay].filter(function (id
 if (overlapBudget > 0 && N >= 2) {
 var overlapLeft = overlapBudget;
 var candidates2 = openDays.filter(function (d) { return assignMap[d].length === 1; });
+if (candidates2.length === 0) { /* skip overlap distribution */ } else {
 // Rotate which days get priority for overlap based on week number
 var overlapOffset = w % candidates2.length;
 candidates2.sort(function (a, b) { return ranking.indexOf(a) - ranking.indexOf(b); });
@@ -189,7 +190,7 @@ halfDay = Math.floor(halfDay * 2) / 2;
 if (halfDay < others[0].minShiftLength) return;
 assignMap[d].push(others[0].id); overlapLeft -= halfDay;
 });
-}
+} /* end candidates2 check */}
 DAYS.forEach(function (day) {
 var dh = store.hours[day];
 if (!dh || !dh.isOpen) { wk[day] = []; return; }
@@ -235,7 +236,7 @@ if (closer.latestEnd) cEnd = Math.min(cEnd, t2m(closer.latestEnd));
 var ovrC = closer.prefs.dayOverrides[day];
 if (ovrC && ovrC.latestEnd) cEnd = Math.min(cEnd, t2m(ovrC.latestEnd));
 cEnd = snap30(cEnd);
-var cStart = Math.max(owC - 60, cEnd - closer.maxShiftLength * 60);
+var cStart = Math.max(segS, owC - 60, cEnd - closer.maxShiftLength * 60);
 if (closer.earliestStart) cStart = Math.max(cStart, t2m(closer.earliestStart));
 cStart = snap30(cStart);
 var shifts = [];
@@ -378,7 +379,7 @@ if (gapLeft < 0.5) return;
 var px = dayStaff.find(function (q) { return q.id === a.pharmacistId; });
 if (!px) return;
 var curLen = (t2m(a.end) - t2m(a.start)) / 60;
-var maxLen = px.maxShiftLength || 13;
+var maxLen = px.maxShiftLength != null ? px.maxShiftLength : 13;
 if (curLen >= maxLen) return;
 // Check constraints for extending end
 var canExtendEnd = t2m(a.end) + 30 <= segE2;
@@ -475,7 +476,7 @@ peakHits += wt * Math.min(baseCredit + pmBonus, 0.95);
 }); } });
 var peakPct = peakTotal > 0 ? Math.round(peakHits / peakTotal * 100) : 100;
 var burdenScores = []; dayStaff.forEach(function (p) { var h = 0; for (var w = 0; w < R; w++) { DAYS.forEach(function (d) { (sched.weeks[w][d] || []).forEach(function (a) { if (a.pharmacistId === p.id) h += (t2m(a.end) - t2m(a.start)) / 60; }); }); } burdenScores.push(h); });
-var sustainScore = 100; if (burdenScores.length >= 2) { var mx = Math.max.apply(null, burdenScores), mn = Math.min.apply(null, burdenScores); if (mx > 0) sustainScore = Math.max(0, Math.round(100 - (mx - mn) / mx * 100)); }
+var sustainScore = 100; if (burdenScores.length >= 2) { var mx = Math.max.apply(null, burdenScores), mn = Math.min.apply(null, burdenScores); if (mx > 0) sustainScore = Math.max(0, Math.round(100 - (mx - mn) / mx * 100)); else sustainScore = 0; }
 var fairnessScore = 100;
 if (dayStaff.length >= 2) {
 var fairPenalty = 0;
@@ -535,7 +536,7 @@ if (["Sat", "Sun"].includes(d) && mine.length > 0) { weekendDays++; if (p.prefs.
 if ((p.prefs.preferredDaysOff || []).includes(d) && mine.length > 0) prefDayViolations.push(d);
 if (p.prefs.noClopening && di > 0 && mine.length > 0) {
 var prevMine = (wk[DAYS[di - 1]] || []).filter(function (a) { return a.pharmacistId === p.id; });
-if (prevMine.length > 0) { var prevEnd = Math.max.apply(null, prevMine.map(function (a) { return t2m(a.end); })); var thisStart = Math.min.apply(null, mine.map(function (a) { return t2m(a.start); })); var dh2 = store.hours[DAYS[di - 1]]; if (dh2 && prevEnd >= t2m(dh2.close) - 60 && thisStart <= t2m(store.hours[d].open) + 60) clopen++; }
+if (prevMine.length > 0) { var prevEnd = Math.max.apply(null, prevMine.map(function (a) { return t2m(a.end); })); var thisStart = Math.min.apply(null, mine.map(function (a) { return t2m(a.start); })); var dh2 = store.hours[DAYS[di - 1]]; var dhCur = store.hours[d]; if (dh2 && dhCur && prevEnd >= t2m(dh2.close) - 60 && thisStart <= t2m(dhCur.open) + 60) clopen++; }
 }
 }); });
 // Cross-week clopening: Sat close in week W -> Sun open in week W+1
@@ -552,11 +553,11 @@ if (satDh2 && sunDh2 && satEnd2 >= t2m(satDh2.close) - 60 && sunStart2 <= t2m(su
 }
 }
 var avgH = R > 0 ? totalH / R : 0;
-if (p.minHours || p.maxHours) { sched.weeks.forEach(function (wk2, wi2) { var weekH = 0; DAYS.forEach(function (d2) { (wk2[d2] || []).forEach(function (a2) { if (a2.pharmacistId === p.id) weekH += (t2m(a2.end) - t2m(a2.start)) / 60; }); }); if (p.minHours && weekH < p.minHours && weekH > 0) tradeoffs.push({ msg: firstName(p) + " scheduled " + fmtH(weekH) + "h in week " + (wi2 + 1) + ", below " + p.minHours + "h minimum", level: "want", prefKey: "hourRange" }); if (p.maxHours && weekH > p.maxHours) tradeoffs.push({ msg: firstName(p) + " scheduled " + fmtH(weekH) + "h in week " + (wi2 + 1) + ", above " + p.maxHours + "h maximum", level: "want", prefKey: "hourRange" }); }); }
+if (p.minHours || p.maxHours) { sched.weeks.forEach(function (wk2, wi2) { var weekH = 0; DAYS.forEach(function (d2) { (wk2[d2] || []).forEach(function (a2) { if (a2.pharmacistId === p.id) weekH += (t2m(a2.end) - t2m(a2.start)) / 60; }); }); if (p.minHours && weekH < p.minHours) tradeoffs.push({ msg: firstName(p) + " scheduled " + fmtH(weekH) + "h in week " + (wi2 + 1) + ", below " + p.minHours + "h minimum", level: "want", prefKey: "hourRange" }); if (p.maxHours && weekH > p.maxHours) tradeoffs.push({ msg: firstName(p) + " scheduled " + fmtH(weekH) + "h in week " + (wi2 + 1) + ", above " + p.maxHours + "h maximum", level: "want", prefKey: "hourRange" }); }); }
 if (R >= 2) { var wkHrs = []; sched.weeks.forEach(function (wk2) { var wh = 0; DAYS.forEach(function (d2) { (wk2[d2] || []).forEach(function (a2) { if (a2.pharmacistId === p.id) wh += (t2m(a2.end) - t2m(a2.start)) / 60; }); }); wkHrs.push(wh); }); var heaviest = Math.max.apply(null, wkHrs); var lightest = Math.min.apply(null, wkHrs.filter(function (h) { return h > 0; }).concat([heaviest])); var spread = heaviest - lightest; if (spread > 16) tradeoffs.push({ msg: firstName(p) + " has " + fmtH(spread) + "h spread (" + fmtH(lightest) + "h \u2013 " + fmtH(heaviest) + "h)", level: "want", prefKey: "weeklySpread" }); }
 if (p.prefs.preferEarly && closeCt > openCt) tradeoffs.push({ msg: firstName(p) + " prefers opening but closes " + closeCt + "x this rotation", level: (p.prefs.needs || {}).preferEarly ? "need" : "want", prefKey: "preferEarly" });
 if (p.prefs.preferLate && openCt > closeCt) tradeoffs.push({ msg: firstName(p) + " prefers closing but opens " + openCt + "x this rotation", level: (p.prefs.needs || {}).preferLate ? "need" : "want", prefKey: "preferLate" });
-if (p.prefs.weekendPref === "every_other_off" && !p.prefs.preferredWeekendDay && weekendDays > R) tradeoffs.push({ msg: firstName(p) + " requested every other weekend off but works " + weekendDays + " weekend days across " + R + " weeks", level: (p.prefs.needs || {}).weekendPref ? "need" : "want", prefKey: "weekendPref" });
+if (p.prefs.weekendPref === "every_other_off" && !p.prefs.preferredWeekendDay && weekendDays >= R) tradeoffs.push({ msg: firstName(p) + " requested every other weekend off but works " + weekendDays + " weekend days across " + R + " weeks", level: (p.prefs.needs || {}).weekendPref ? "need" : "want", prefKey: "weekendPref" });
 if (prefDayViolations.length > 0) tradeoffs.push({ msg: firstName(p) + " prefers " + prefDayViolations.join(", ") + " off but is scheduled to work", level: "want", prefKey: "preferredDaysOff" });
 if (clopen > 0) tradeoffs.push({ msg: firstName(p) + " has " + clopen + " close-to-open" + (clopen > 1 ? "s" : ""), level: (p.prefs.needs || {}).noClopening ? "need" : "want", prefKey: "noClopening" });
 if (p.prefs.preferredWeekendDay && wkndDayViolations.length > 0) tradeoffs.push({ msg: firstName(p) + " prefers " + p.prefs.preferredWeekendDay + " off but works it", level: (p.prefs.needs || {}).weekendPref ? "need" : "want", prefKey: "preferredWeekendDay" });
